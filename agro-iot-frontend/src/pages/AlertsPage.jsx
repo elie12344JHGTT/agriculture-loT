@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "https://esm.sh/react@19.1.1";
 import { Panel } from "../components/Panel.jsx";
 
+// A alimenter avec GET /alerts/active.
 const activeAlerts = [];
 
+// Seuils par defaut affiches en attendant GET /thresholds.
 const initialThresholds = [
   { key: "soil_humidity_min", label: "Humidite sol minimale", value: 30, unit: "%", rule: "Declencher irrigation" },
   { key: "temperature_max", label: "Temperature maximale", value: 35, unit: "C", rule: "Generer alerte temperature" },
@@ -18,6 +20,7 @@ const automationRules = [
   { condition: "Niveau eau < seuil", action: "Alerte intervention", status: "Inactive" }
 ];
 
+// A alimenter lorsque le backend expose les canaux de notification.
 const notificationChannels = [];
 
 function normalizeThresholds(thresholds) {
@@ -41,6 +44,7 @@ export function AlertsPage() {
     setSaveStatus("editing");
   }
 
+  // A connecter a PUT /thresholds pour enregistrer les seuils dans Laravel.
   function saveThresholds() {
     setSavedThresholds(thresholds);
     setSaveStatus("saved");

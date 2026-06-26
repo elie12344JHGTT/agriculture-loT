@@ -13,11 +13,13 @@ export function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activePage, setActivePage] = useState("Dashboard");
 
+  // Remplacer cet etat local par la reponse de l API Laravel /auth/login.
   function login(user) {
     setCurrentUser(user);
     setIsLoggedIn(true);
   }
 
+  // Appeler l API /auth/logout avant de vider la session cote frontend.
   function logout() {
     setCurrentUser(null);
     setIsLoggedIn(false);
@@ -45,3 +47,4 @@ export function App() {
     </div>
   );
 }
+

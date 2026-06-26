@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from "https://esm.sh/react@19.1.1";
 
 const tabs = ["Mesures", "Alertes", "Actions"];
+// Tableaux vides en attendant les donnees Laravel des historiques.
 const measureHistoryRows = [];
 const alertHistoryRows = [];
 const actionHistoryRows = [];
 const HISTORY_ROWS_PER_PAGE = 7;
 
+// Export local des lignes selectionnees; peut etre remplace par GET /exports/history.
 function exportRowsAsCsv(filename, headers, rows) {
   const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
   const content = [headers.join(","), ...rows.map((row) => headers.map((header) => escapeCsv(row[header])).join(","))].join("\n");
@@ -61,6 +63,7 @@ function Pagination({ label, total, page, pageCount, startIndex, endIndex, onPag
   );
 }
 
+// Calcule une pagination frontend de 7 lignes par page.
 function getPageMeta(rows, page) {
   const pageCount = Math.max(1, Math.ceil(rows.length / HISTORY_ROWS_PER_PAGE));
   const safePage = Math.min(page, pageCount);
@@ -289,3 +292,4 @@ export function HistoryPage() {
     </section>
   );
 }
+

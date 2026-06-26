@@ -14,8 +14,10 @@ export function LoginPage({ onLogin }) {
   const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
 
+  // A connecter a POST /auth/login lorsque le backend Laravel sera disponible.
   function submit(event) {
     event.preventDefault();
+    // Role temporaire pour la maquette; le backend renverra le vrai role utilisateur.
     const role = email.toLowerCase().includes("admin") ? "Admin" : "Agriculteur";
     onLogin({ email, role });
   }
@@ -77,5 +79,4 @@ export function LoginPage({ onLogin }) {
     </main>
   );
 }
-
 

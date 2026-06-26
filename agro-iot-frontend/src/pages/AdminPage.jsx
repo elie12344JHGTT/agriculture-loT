@@ -6,6 +6,7 @@ const adminSections = [
   "Etat des acces"
 ];
 
+// A alimenter avec GET /users?page=1&limit=7.
 const initialUserAccounts = [];
 
 const emptyUserForm = {
@@ -18,6 +19,7 @@ const emptyUserForm = {
   last_login: "--"
 };
 
+// Roles attendus par le frontend; le backend doit renvoyer les memes valeurs.
 const roles = [
   {
     name: "Admin",
@@ -35,6 +37,7 @@ const roles = [
 
 const accountStatuses = ["Actif", "Invite", "Inactif"];
 const USERS_PER_PAGE = 7;
+// A alimenter avec GET /access-logs?page=1&limit=7.
 const accessLogs = [];
 
 function createUserId(totalUsers) {
@@ -86,6 +89,7 @@ export function AdminPage() {
     setUserForm(emptyUserForm);
   };
 
+  // A connecter a DELETE /users/:id_user lorsque le backend sera pret.
   const deleteUser = (userId) => {
     setUsers((currentUsers) => currentUsers.filter((user) => user.id_user !== userId));
   };
@@ -94,6 +98,7 @@ export function AdminPage() {
     setUserForm((currentForm) => ({ ...currentForm, [field]: value }));
   };
 
+  // A connecter a POST /users ou PUT /users/:id_user selon le mode du formulaire.
   const saveUser = (event) => {
     event.preventDefault();
 
@@ -320,18 +325,4 @@ export function AdminPage() {
     </section>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

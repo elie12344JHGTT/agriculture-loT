@@ -7,6 +7,7 @@ import { Panel } from "../components/Panel.jsx";
 import { Rule } from "../components/Rule.jsx";
 import { SensorCard } from "../components/SensorCard.jsx";
 
+// Valeurs d attente avant reception des dernieres mesures depuis GET /measurements/latest.
 const waitingReadings = {
   Temperature: 0,
   "Humidite air": 0,
@@ -16,6 +17,7 @@ const waitingReadings = {
   "Niveau eau": 0
 };
 
+// A remplacer par les alertes recues depuis GET /alerts/active.
 const apiWaitingAlert = {
   title: "Aucune alerte active",
   detail: "Les seuils seront controles apres reception des mesures",
@@ -24,6 +26,7 @@ const apiWaitingAlert = {
 };
 
 export function DashboardPage() {
+  // Prepare les cartes capteurs avec un format stable pour le futur branchement API.
   const waitingCards = useMemo(() => sensorCards.map((card) => ({
     ...card,
     value: String(waitingReadings[card.label]),
@@ -62,3 +65,4 @@ export function DashboardPage() {
     </section>
   );
 }
+
