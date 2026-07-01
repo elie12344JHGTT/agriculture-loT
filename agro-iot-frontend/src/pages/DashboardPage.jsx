@@ -169,11 +169,12 @@ export function DashboardPage() {
 
   return (
     <section className="page-grid">
-      <div className={`dashboard-live-status ${latestMeasurements ? "" : "waiting"}`}>
-        <strong>{latestMeasurements ? "Dashboard connecte" : "Dashboard en attente"}</strong>
-        <span>{apiStatus}</span>
-      </div>
-
+      {!latestMeasurements && (
+        <div className="dashboard-live-status waiting">
+          <strong>Dashboard en attente</strong>
+          <span>{apiStatus}</span>
+        </div>
+      )}
       <div className="sensor-grid">
         {cards.map((card) => <SensorCard key={card.label} card={card} />)}
       </div>
@@ -204,3 +205,7 @@ export function DashboardPage() {
     </section>
   );
 }
+
+
+
+
