@@ -24,3 +24,8 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Local portable tools
+.tools/
+composer.phar
+**/composer.phar
