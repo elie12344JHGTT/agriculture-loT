@@ -427,6 +427,16 @@ Technicien
 
 Le backend doit renvoyer exactement ces valeurs ou fournir une table de correspondance.
 
+Affichage frontend par role :
+
+| Role | Pages visibles |
+| --- | --- |
+| Admin | Dashboard, Historique, Alertes, Administration |
+| Agriculteur | Dashboard, Historique, Alertes |
+| Technicien | Dashboard, Historique, Alertes |
+
+Important : la page Administration est reservee au role `Admin`. Le backend doit aussi proteger les routes sensibles cote serveur, car le filtrage frontend sert seulement a l'affichage.
+
 ## 9. Etats vides a respecter
 
 Quand le backend n'a pas encore de donnees, renvoyer des tableaux vides :
@@ -450,4 +460,5 @@ Le frontend affichera alors les messages :
 - aucune commande recue;
 - aucun utilisateur trouve;
 - aucun acces trouve.
+
 

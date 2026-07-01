@@ -21,7 +21,8 @@ export function LoginPage({ onLogin }) {
   function submit(event) {
     event.preventDefault();
     // Role temporaire pour la maquette; le backend renverra le vrai role utilisateur.
-    const role = email.toLowerCase().includes("admin") ? "Admin" : "Agriculteur";
+    const normalizedEmail = email.toLowerCase();
+    const role = normalizedEmail.includes("admin") ? "Admin" : normalizedEmail.includes("tech") ? "Technicien" : "Agriculteur";
     onLogin({ email, role });
   }
 
@@ -82,4 +83,6 @@ export function LoginPage({ onLogin }) {
     </main>
   );
 }
+
+
 
