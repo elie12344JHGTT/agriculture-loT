@@ -230,6 +230,60 @@ Utilisation frontend :
 - afficher un etat `En attente`, `Executee` ou `Echec`;
 - ajouter la commande dans l'historique des actions via le backend.
 
+
+## Script batch/CLI pour les actionneurs
+
+Un script a ete ajoute a la racine du projet :
+
+```txt
+scripts/actionneurs-cli.bat
+```
+
+Il peut etre utilise en mode menu ou en mode direct pour envoyer des commandes au backend Laravel.
+
+Commandes directes :
+
+```bat
+scripts\actionneurs-cli.bat irrigation start
+scripts\actionneurs-cli.bat ventilation stop
+scripts\actionneurs-cli.bat light start
+scripts\actionneurs-cli.bat all start batch
+```
+
+Le script appelle les routes suivantes :
+
+```txt
+POST /api/actuators/irrigation
+POST /api/actuators/ventilation
+POST /api/actuators/light
+```
+
+Variables que le backend peut utiliser pour le dynamiser :
+
+```bat
+set AGRO_API_BASE_URL=http://127.0.0.1:8000/api
+set AGRO_API_TOKEN=votre_token_api
+```
+
+Body envoye :
+
+```json
+{
+  "command": "start",
+  "source": "cli"
+}
+```
+
+Valeurs possibles de `source` :
+
+```txt
+manual
+cli
+batch
+```
+
+Le backend Laravel peut enregistrer ces commandes dans la table des actions/scripts, puis transmettre la commande vers l'ESP32.
+
 ## 4. Alertes et seuils
 
 Fichier frontend concerne : `src/pages/AlertsPage.jsx`
@@ -460,5 +514,6 @@ Le frontend affichera alors les messages :
 - aucune commande recue;
 - aucun utilisateur trouve;
 - aucun acces trouve.
+
 
 
