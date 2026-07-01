@@ -3,6 +3,7 @@
 use App\Models\Action;
 use App\Models\Actionneur;
 use App\Models\Alerte;
+use App\Models\Historique;
 use App\Models\Mesure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -93,6 +94,115 @@ Route::get('/alerts/active', function () {
     );
 });
 
+Route::get('/history/measurements', function (Request $request) {
+    $limit = min((int) $request->query('limit', 200), 500);
+    $type = strtolower((string) $request->query('type', ''));
+    $date = $request->query('date');
+
+    $query = Mesure::with('capteur.parcelle')->orderByDesc('date');
+
+    if ($date) {
+        $query->whereDate('date', $date);
+    }
+
+    $rows = $query->limit($limit)->get();
+
+    if ($type !== '' && $type !== 'tous') {
+        $rows = $rows->filter(function ($mesure) use ($type) {
+            $sensorType = strtolower(($mesure->capteur?->type ?? '') . ' ' . ($mesure->capteur?->nom ?? ''));
+            return str_contains($sensorType, $type);
+        });
+    }
+
+    $formatDate = fn ($value) => $value ? date('Y-m-d H:i', strtotime((string) $value)) : '--';
+    $formatUnit = function (?string $sensorType) {
+        $sensorType = strtolower((string) $sensorType);
+        return str_contains($sensorType, 'co2') ? 'ppm' : (str_contains($sensorType, 'luminosite') || str_contains($sensorType, 'light') ? 'lux' : (str_contains($sensorType, 'temperature') || str_contains($sensorType, 'temp') ? 'C' : '%'));
+    };
+
+    $formattedRows = $rows->values()->map(fn ($mesure) => [
+        'id_mesure' => 'MES-' . str_pad((string) $mesure->id, 3, '0', STR_PAD_LEFT),
+        'date_mesure' => $formatDate($mesure->date),
+        'parcelle' => $mesure->capteur?->parcelle?->nom ?? '--',
+        'capteur' => $mesure->capteur?->nom ?? '--',
+        'type_mesure' => $mesure->capteur?->type ?? '--',
+        'valeur' => $mesure->valeur,
+        'unite' => $formatUnit($mesure->capteur?->type),
+    ]);
+
+    return response()->json([
+        'rows' => $formattedRows,
+        'total' => $formattedRows->count(),
+    ]);
+});
+
+Route::get('/history/alerts', function (Request $request) {
+    $limit = min((int) $request->query('limit', 200), 500);
+    $formatDate = fn ($value) => $value ? date('Y-m-d H:i', strtotime((string) $value)) : '--';
+
+    $rows = Alerte::with('notification')
+        ->orderByDesc('date')
+        ->limit($limit)
+        ->get()
+        ->map(fn ($alerte) => [
+            'id_alerte' => 'ALT-' . str_pad((string) $alerte->id, 3, '0', STR_PAD_LEFT),
+            'date_creation' => $formatDate($alerte->date),
+            'parcelle' => '--',
+            'type_alerte' => $alerte->type_alerte,
+            'message' => $alerte->message,
+            'niveau' => $alerte->niveau_criticite,
+            'statut' => $alerte->statut ? 'Traitee' : 'Ouverte',
+            'regle' => $alerte->notification?->type_notif ?? '--',
+        ]);
+
+    return response()->json([
+        'rows' => $rows,
+        'total' => $rows->count(),
+    ]);
+});
+
+Route::get('/history/actions', function (Request $request) {
+    $limit = min((int) $request->query('limit', 200), 500);
+    $formatDate = fn ($value) => $value ? date('Y-m-d H:i', strtotime((string) $value)) : '--';
+
+    $actionRows = Action::with('actionneur')
+        ->orderByDesc('date_declenchement')
+        ->limit($limit)
+        ->get()
+        ->map(fn ($action) => [
+            'id_action' => 'ACT-' . str_pad((string) $action->id, 3, '0', STR_PAD_LEFT),
+            'date_action' => $formatDate($action->date_declenchement),
+            'actionneur' => $action->actionneur?->nom ?? $action->nom,
+            'type_action' => $action->type,
+            'source' => $action->source,
+            'statut' => $action->statut,
+            'utilisateur' => '--',
+        ]);
+
+    $historyRows = Historique::with('action.actionneur')
+        ->orderByDesc('date_evenement')
+        ->limit($limit)
+        ->get()
+        ->map(fn ($historique) => [
+            'id_action' => 'HIS-' . str_pad((string) $historique->id, 3, '0', STR_PAD_LEFT),
+            'date_action' => $formatDate($historique->date_evenement),
+            'actionneur' => $historique->action?->actionneur?->nom ?? $historique->action?->nom ?? '--',
+            'type_action' => $historique->type_evenement,
+            'source' => $historique->source,
+            'statut' => $historique->niveau,
+            'utilisateur' => '--',
+        ]);
+
+    $rows = $actionRows->concat($historyRows)
+        ->sortByDesc('date_action')
+        ->take($limit)
+        ->values();
+
+    return response()->json([
+        'rows' => $rows,
+        'total' => $rows->count(),
+    ]);
+});
 Route::post('/actuators/{actuator}', function (Request $request, string $actuator) {
     $allowedActuators = [
         'irrigation' => ['pompe', 'irrigation'],
@@ -149,3 +259,5 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
         'actionneur' => $actionneur->nom,
     ]);
 });
+
+

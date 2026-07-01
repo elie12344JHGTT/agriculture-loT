@@ -1,11 +1,15 @@
-import React, { useMemo, useState } from "https://esm.sh/react@19.1.1";
+import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
+import api from "../api/axios";
 
 const tabs = ["Mesures", "Alertes", "Actions"];
-// Tableaux vides en attendant les donnees Laravel des historiques.
-const measureHistoryRows = [];
-const alertHistoryRows = [];
-const actionHistoryRows = [];
 const HISTORY_ROWS_PER_PAGE = 7;
+
+function normalizeText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 // Export local des lignes selectionnees; peut etre remplace par GET /exports/history.
 function exportRowsAsCsv(filename, headers, rows) {
@@ -78,6 +82,11 @@ export function HistoryPage() {
   const [activeTab, setActiveTab] = useState("Mesures");
   const [filter, setFilter] = useState("Tous");
   const [dateFilter, setDateFilter] = useState("");
+  const [measureHistoryRows, setMeasureHistoryRows] = useState([]);
+  const [alertHistoryRows, setAlertHistoryRows] = useState([]);
+  const [actionHistoryRows, setActionHistoryRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [measurePage, setMeasurePage] = useState(1);
   const [alertPage, setAlertPage] = useState(1);
   const [actionPage, setActionPage] = useState(1);
@@ -85,10 +94,64 @@ export function HistoryPage() {
   const [selectedAlerts, setSelectedAlerts] = useState([]);
   const [selectedActions, setSelectedActions] = useState([]);
 
-  const filteredMeasures = useMemo(
-    () => filter === "Tous" ? measureHistoryRows : measureHistoryRows.filter((row) => row.type_mesure === filter),
-    [filter]
-  );
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHistory() {
+      setIsLoading(true);
+      setLoadError("");
+
+      try {
+        const params = { limit: 500 };
+        if (dateFilter) {
+          params.date = dateFilter;
+        }
+
+        const [measuresResponse, alertsResponse, actionsResponse] = await Promise.all([
+          api.get("/api/history/measurements", { params }),
+          api.get("/api/history/alerts", { params: { limit: 500 } }),
+          api.get("/api/history/actions", { params: { limit: 500 } })
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setMeasureHistoryRows(measuresResponse.data?.rows ?? []);
+        setAlertHistoryRows(alertsResponse.data?.rows ?? []);
+        setActionHistoryRows(actionsResponse.data?.rows ?? []);
+        setMeasurePage(1);
+        setAlertPage(1);
+        setActionPage(1);
+        setSelectedMeasures([]);
+        setSelectedAlerts([]);
+        setSelectedActions([]);
+      } catch (error) {
+        if (isMounted) {
+          setLoadError("Impossible de charger l'historique depuis Laravel");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dateFilter]);
+
+  const filteredMeasures = useMemo(() => {
+    if (filter === "Tous") {
+      return measureHistoryRows;
+    }
+
+    const selectedType = normalizeText(filter);
+    return measureHistoryRows.filter((row) => normalizeText(row.type_mesure).includes(selectedType));
+  }, [filter, measureHistoryRows]);
 
   const measureRows = useMemo(
     () => filteredMeasures.map((row, index) => ({ ...row, key: rowKey(row, index) })),
@@ -97,12 +160,12 @@ export function HistoryPage() {
 
   const alertRows = useMemo(
     () => alertHistoryRows.map((row, index) => ({ ...row, key: rowKey(row, index) })),
-    []
+    [alertHistoryRows]
   );
 
   const actionRows = useMemo(
     () => actionHistoryRows.map((row, index) => ({ ...row, key: rowKey(row, index) })),
-    []
+    [actionHistoryRows]
   );
 
   const measureMeta = getPageMeta(measureRows, measurePage);
@@ -132,6 +195,10 @@ export function HistoryPage() {
   function exportSelectedActions() {
     exportRowsAsCsv("historique-actions-selectionnees.csv", ["date_action", "actionneur", "type_action", "source", "statut", "utilisateur"], selectedActionRows);
   }
+
+  const measuresEmptyLabel = loadError || (isLoading ? "Chargement des mesures..." : "Aucune mesure recue");
+  const alertsEmptyLabel = loadError || (isLoading ? "Chargement des alertes..." : "Aucune alerte recue");
+  const actionsEmptyLabel = loadError || (isLoading ? "Chargement des actions..." : "Aucune commande recue");
 
   return (
     <section className="panel wide-panel history-page">
@@ -196,7 +263,7 @@ export function HistoryPage() {
                     <td>{row.unite}</td>
                   </tr>
                 ))}
-                {measureRows.length === 0 && <EmptyRow colSpan={7} label="Aucune mesure recue" />}
+                {measureRows.length === 0 && <EmptyRow colSpan={7} label={measuresEmptyLabel} />}
               </tbody>
             </table>
           </div>
@@ -240,7 +307,7 @@ export function HistoryPage() {
                     <td>{row.regle}</td>
                   </tr>
                 ))}
-                {alertRows.length === 0 && <EmptyRow colSpan={8} label="Aucune alerte recue" />}
+                {alertRows.length === 0 && <EmptyRow colSpan={8} label={alertsEmptyLabel} />}
               </tbody>
             </table>
           </div>
@@ -282,7 +349,7 @@ export function HistoryPage() {
                     <td>{row.utilisateur}</td>
                   </tr>
                 ))}
-                {actionRows.length === 0 && <EmptyRow colSpan={7} label="Aucune commande recue" />}
+                {actionRows.length === 0 && <EmptyRow colSpan={7} label={actionsEmptyLabel} />}
               </tbody>
             </table>
           </div>
@@ -292,4 +359,3 @@ export function HistoryPage() {
     </section>
   );
 }
-
