@@ -1,4 +1,4 @@
-import React, { useState } from "https://esm.sh/react@19.1.1";
+import React, { useState, useEffect } from "https://esm.sh/react@19.1.1";
 import { navItems } from "./data/mockData.js";
 import { Sidebar } from "./layout/Sidebar.jsx";
 import { Header } from "./layout/Header.jsx";
@@ -7,7 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { HistoryPage } from "./pages/HistoryPage.jsx";
 import { AlertsPage } from "./pages/AlertsPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
-
+import api from "./api/axios"; // <-- Importez votre instance axios configurée
 
 
 
@@ -15,6 +15,17 @@ export function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [activePage, setActivePage] = useState("Dashboard");
+
+  // AJOUT DU TEST DE CONNECTIVITÉ
+  useEffect(() => {
+    api.get('/api/test-connection')
+      .then(response => {
+        console.log('✅ Connexion au backend réussie :', response.data);
+      })
+      .catch(error => {
+        console.error('❌ Erreur de connexion au backend :', error);
+      });
+  }, []); // Le tableau vide [] garantit que cela ne s'exécute qu'au chargement
 
   // Remplacer cet etat local par la reponse de l API Laravel /auth/login.
   function login(user) {
