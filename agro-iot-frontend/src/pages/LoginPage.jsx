@@ -9,6 +9,9 @@ import passwordIcon from "../assets/icons/locked-computer.png";
 import showIcon from "../assets/icons/show.png";
 import hideIcon from "../assets/icons/hide.png";
 
+
+
+
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("admin@agroiot.cd");
   const [password, setPassword] = useState("admin123");

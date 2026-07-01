@@ -8,6 +8,9 @@ import { HistoryPage } from "./pages/HistoryPage.jsx";
 import { AlertsPage } from "./pages/AlertsPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
 
+
+
+
 export function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -30,7 +33,9 @@ export function App() {
   }
 
   return (
+    
     <div className="app-shell">
+      
       <Sidebar
         activePage={activePage}
         navItems={navItems}
@@ -48,3 +53,4 @@ export function App() {
   );
 }
 
+export default App;
