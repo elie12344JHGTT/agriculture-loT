@@ -1,5 +1,10 @@
 <?php
 
+$frontendUrls = array_filter(array_map(
+    'trim',
+    explode(',', env('FRONTEND_URLS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174'))
+));
+
 return [
 
     /*
@@ -7,27 +12,17 @@ return [
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
     |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+    | FRONTEND_URLS peut contenir plusieurs domaines separes par des virgules.
+    | Exemple Railway/Vercel :
+    | FRONTEND_URLS=https://agro-iot.vercel.app,http://localhost:5174
     |
     */
 
     'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
-    
-
 
     'allowed_methods' => ['*'],
 
-    // Pour communiquer avec le frontend React
-    'allowed_origins' => [
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'http://localhost:5174',
-        'http://127.0.0.1:5174',
-    ],
+    'allowed_origins' => $frontendUrls,
 
     'allowed_origins_patterns' => [],
 
@@ -40,4 +35,3 @@ return [
     'supports_credentials' => true,
 
 ];
-
