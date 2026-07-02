@@ -5,6 +5,9 @@ use App\Models\Actionneur;
 use App\Models\Alerte;
 use App\Models\Historique;
 use App\Models\Mesure;
+use App\Models\Notification_systeme as NotificationSysteme;
+use App\Models\Seuil;
+use App\Models\Script;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -74,21 +77,120 @@ Route::get('/measurements/chart', function (Request $request) {
     ]);
 });
 
-Route::get('/alerts/active', function () {
+Route::get('/alerts/active', function (Request $request) {
+    $limit = min((int) $request->query('limit', 100), 500);
+    $formatDate = fn ($value) => $value ? date('Y-m-d H:i', strtotime((string) $value)) : '--';
+
     return response()->json(
-        Alerte::query()
+        Alerte::with('notification')
             ->where('statut', false)
             ->orderByDesc('date')
-            ->limit(3)
+            ->limit($limit)
             ->get()
             ->map(fn ($alerte) => [
-                'id_alerte' => $alerte->id,
+                'id_alerte' => 'ALT-' . str_pad((string) $alerte->id, 3, '0', STR_PAD_LEFT),
+                'date_creation' => $formatDate($alerte->date),
+                'parcelle' => '--',
                 'type_alerte' => $alerte->type_alerte,
                 'message' => $alerte->message,
+                'niveau' => $alerte->niveau_criticite,
                 'niveau_criticite' => $alerte->niveau_criticite,
                 'statut' => $alerte->statut ? 'Traitee' : 'Ouverte',
-                'date' => $alerte->date,
+                'date' => $formatDate($alerte->date),
                 'priorite' => $alerte->priorite,
+                'action' => $alerte->notification?->contenu ?? 'Verification recommandee',
+            ])
+            ->values()
+    );
+});
+
+Route::put('/alerts/{alert}/resolve', function (Alerte $alert) {
+    $alert->update(['statut' => true]);
+
+    return response()->json([
+        'success' => true,
+        'id_alerte' => 'ALT-' . str_pad((string) $alert->id, 3, '0', STR_PAD_LEFT),
+        'statut' => 'Traitee',
+    ]);
+});
+
+Route::get('/thresholds', function () {
+    return response()->json(
+        Seuil::query()
+            ->orderBy('nom')
+            ->get()
+            ->map(fn ($seuil) => [
+                'id' => $seuil->id,
+                'key' => 'seuil_' . $seuil->id,
+                'label' => $seuil->nom,
+                'value' => $seuil->valeur_min,
+                'min' => $seuil->valeur_min,
+                'max' => $seuil->valeur_max,
+                'unit' => $seuil->unite,
+                'rule' => 'Valeur attendue entre ' . $seuil->valeur_min . ' et ' . $seuil->valeur_max . ' ' . $seuil->unite,
+            ])
+            ->values()
+    );
+});
+
+Route::put('/thresholds', function (Request $request) {
+    $rows = collect($request->json()->all());
+
+    $updatedRows = $rows->map(function ($row) {
+        $id = $row['id'] ?? (str_starts_with((string) ($row['key'] ?? ''), 'seuil_') ? substr((string) $row['key'], 6) : null);
+        $seuil = $id ? Seuil::find($id) : null;
+
+        if (! $seuil) {
+            return null;
+        }
+
+        $seuil->update([
+            'valeur_min' => array_key_exists('value', $row) ? (float) $row['value'] : $seuil->valeur_min,
+        ]);
+
+        return [
+            'id' => $seuil->id,
+            'key' => 'seuil_' . $seuil->id,
+            'label' => $seuil->nom,
+            'value' => $seuil->valeur_min,
+            'min' => $seuil->valeur_min,
+            'max' => $seuil->valeur_max,
+            'unit' => $seuil->unite,
+            'rule' => 'Valeur attendue entre ' . $seuil->valeur_min . ' et ' . $seuil->valeur_max . ' ' . $seuil->unite,
+        ];
+    })->filter()->values();
+
+    return response()->json($updatedRows);
+});
+
+
+Route::get('/automation-rules', function () {
+    return response()->json(
+        Script::query()
+            ->orderBy('code')
+            ->get()
+            ->map(fn ($script) => [
+                'id' => $script->id,
+                'condition' => $script->code,
+                'action' => $script->description,
+                'status' => 'Configure',
+            ])
+            ->values()
+    );
+});
+Route::get('/notifications/channels', function () {
+    return response()->json(
+        NotificationSysteme::query()
+            ->orderByDesc('date_envoi')
+            ->limit(100)
+            ->get()
+            ->map(fn ($notification) => [
+                'id' => $notification->id,
+                'channel' => $notification->canal,
+                'recipient' => $notification->contenu,
+                'status' => $notification->statut,
+                'type' => $notification->type_notif,
+                'date' => $notification->date_envoi ? date('Y-m-d H:i', strtotime((string) $notification->date_envoi)) : '--',
             ])
             ->values()
     );
@@ -259,5 +361,7 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
         'actionneur' => $actionneur->nom,
     ]);
 });
+
+
 
 
