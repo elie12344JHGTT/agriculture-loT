@@ -8,6 +8,7 @@ import { HistoryPage } from "./pages/HistoryPage.jsx";
 import { AlertsPage } from "./pages/AlertsPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
 import api from "./api/axios";
+import { logAudit, setCurrentAuditUser } from "./api/audit";
 
 const pagesByRole = {
   Admin: ["Dashboard", "Historique", "Alertes", "Administration"],
@@ -15,14 +16,29 @@ const pagesByRole = {
   Technicien: ["Dashboard", "Historique", "Alertes"]
 };
 
+const AUTH_STORAGE_KEY = "agro-iot-auth";
+
 function getPagesForRole(role) {
   return pagesByRole[role] || pagesByRole.Agriculteur;
 }
 
+function readStoredAuth() {
+  try {
+    const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+    return storedAuth ? JSON.parse(storedAuth) : null;
+  } catch (error) {
+    console.error("Session locale invalide :", error);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
+
+const storedAuth = readStoredAuth();
+
 export function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [activePage, setActivePage] = useState("Dashboard");
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(storedAuth?.user));
+  const [currentUser, setCurrentUser] = useState(storedAuth?.user || null);
+  const [activePage, setActivePage] = useState(storedAuth?.activePage || "Dashboard");
 
   const allowedNavItems = useMemo(() => {
     const allowedPages = getPagesForRole(currentUser?.role);
@@ -41,25 +57,58 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    setCurrentAuditUser(currentUser);
+
+    if (currentUser) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: currentUser, activePage }));
+    } else {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  }, [activePage, currentUser]);
+
+  useEffect(() => {
     if (isLoggedIn && !allowedNavItems.includes(activePage)) {
       setActivePage(allowedNavItems[0]);
     }
   }, [activePage, allowedNavItems, isLoggedIn]);
 
-  // Remplacer cet etat local par la reponse de l API Laravel /auth/login.
   function login(user) {
     const userPages = getPagesForRole(user?.role);
+    setCurrentAuditUser(user);
     setCurrentUser(user);
     setActivePage(userPages[0]);
     setIsLoggedIn(true);
   }
 
-  // Appeler l API /auth/logout avant de vider la session cote frontend.
-  function logout() {
-    setCurrentUser(null);
-    setActivePage("Dashboard");
-    setIsLoggedIn(false);
+  async function logout() {
+    try {
+      await api.post("/api/auth/logout", {
+        session_id: currentUser?.audit_session_id,
+        user_id: currentUser?.id,
+        user_name: currentUser?.name || currentUser?.nom,
+        user_email: currentUser?.email,
+        user_role: currentUser?.role
+      });
+    } catch (error) {
+      console.error("Erreur lors de la deconnexion :", error);
+    } finally {
+      setCurrentAuditUser(null);
+      setCurrentUser(null);
+      setActivePage("Dashboard");
+      setIsLoggedIn(false);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
   }
+
+  useEffect(() => {
+    if (isLoggedIn && activePage) {
+      logAudit({
+        page: activePage,
+        action: `Consultation page ${activePage}`,
+        details: `Ouverture de la page ${activePage}`
+      });
+    }
+  }, [activePage, isLoggedIn]);
 
   if (!isLoggedIn) {
     return <LoginPage onLogin={login} />;

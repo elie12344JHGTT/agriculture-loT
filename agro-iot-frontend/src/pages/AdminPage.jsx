@@ -1,4 +1,6 @@
-import React, { useState } from "https://esm.sh/react@19.1.1";
+import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
+import api from "../api/axios";
+import { logAudit } from "../api/audit";
 import plusIcon from "../assets/icons/plus-solid.png";
 
 const adminSections = [
@@ -6,112 +8,241 @@ const adminSections = [
   "Etat des acces"
 ];
 
-// A alimenter avec GET /users?page=1&limit=7.
-const initialUserAccounts = [];
-
 const emptyUserForm = {
+  id: null,
   id_user: "",
   nom: "",
   email: "",
   role: "Agriculteur",
   status: "Invite",
-  password: "",
-  last_login: "--"
+  password: ""
 };
 
-// Roles attendus par le frontend; le backend doit renvoyer les memes valeurs.
-const roles = [
-  {
-    name: "Admin",
-    permissions: ["Utilisateurs", "Roles", "Seuils", "Regles", "Historique", "Alertes", "Exports"]
-  },
-  {
-    name: "Agriculteur",
-    permissions: ["Dashboard", "Alertes", "Historique", "Commandes manuelles autorisees"]
-  },
-  {
-    name: "Technicien",
-    permissions: ["Capteurs", "Actionneurs", "Maintenance IoT", "Diagnostic"]
-  }
-];
-
+const roles = ["Admin", "Agriculteur", "Technicien"];
 const accountStatuses = ["Actif", "Invite", "Inactif"];
 const USERS_PER_PAGE = 7;
-// A alimenter avec GET /access-logs?page=1&limit=7.
-const accessLogs = [];
 
 function createUserId(totalUsers) {
   return `USR-${String(totalUsers + 1).padStart(3, "0")}`;
 }
 
+function getNumericUserId(user) {
+  return user.id ?? String(user.id_user ?? "").replace("USR-", "");
+}
+
+function getAuditDay(value) {
+  return String(value || "").slice(0, 10) || "Date inconnue";
+}
+
+function groupLogsByDay(logs) {
+  const groups = new Map();
+
+  logs.forEach((log) => {
+    const userKey = log.utilisateur || "Utilisateur inconnu";
+    const dayKey = getAuditDay(log.heure_connexion);
+    const key = `${userKey}-${dayKey}`;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: key,
+        utilisateur: userKey,
+        role: log.user_role || log.role || "--",
+        day: dayKey,
+        firstActivity: log.heure_connexion,
+        lastActivity: log.heure_connexion,
+        failedCount: 0,
+        loginCount: 0,
+        sessionIds: new Set(),
+        actions: []
+      });
+    }
+
+    const group = groups.get(key);
+    group.actions.push(log);
+
+    if (String(log.heure_connexion || "") < String(group.firstActivity || "")) {
+      group.firstActivity = log.heure_connexion;
+    }
+
+    if (String(log.heure_connexion || "") > String(group.lastActivity || "")) {
+      group.lastActivity = log.heure_connexion;
+    }
+
+    if (log.session_id) {
+      group.sessionIds.add(log.session_id);
+    }
+
+    if (log.commande_type === "login" || log.commande === "Connexion reussie") {
+      group.loginCount += 1;
+    }
+
+    if (log.commande_type === "failed" || log.statut === "failed") {
+      group.failedCount += 1;
+    }
+  });
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      sessionCount: group.sessionIds.size || group.loginCount,
+      actions: group.actions.sort((a, b) => String(b.heure_connexion).localeCompare(String(a.heure_connexion)))
+    }))
+    .sort((a, b) => String(b.lastActivity).localeCompare(String(a.lastActivity)));
+}
+function getPageMeta(rows, page) {
+  const pageCount = Math.max(1, Math.ceil(rows.length / USERS_PER_PAGE));
+  const safePage = Math.min(page, pageCount);
+  const startIndex = rows.length === 0 ? 0 : (safePage - 1) * USERS_PER_PAGE + 1;
+  const endIndex = Math.min(safePage * USERS_PER_PAGE, rows.length);
+  const paginatedRows = rows.slice((safePage - 1) * USERS_PER_PAGE, safePage * USERS_PER_PAGE);
+
+  return { pageCount, safePage, startIndex, endIndex, paginatedRows };
+}
+
 export function AdminPage() {
   const [activeSection, setActiveSection] = useState(adminSections[0]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState(initialUserAccounts);
+  const [users, setUsers] = useState([]);
+  const [accessLogs, setAccessLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   const [userForm, setUserForm] = useState(emptyUserForm);
   const [userPage, setUserPage] = useState(1);
   const [accessPage, setAccessPage] = useState(1);
+  const [selectedAuditSession, setSelectedAuditSession] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAdminData() {
+      setIsLoading(true);
+      setLoadError("");
+
+      try {
+        const [usersResponse, accessResponse] = await Promise.all([
+          api.get("/api/users", { params: { limit: 500 } }),
+          api.get("/api/access-logs", { params: { limit: 500 } })
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setUsers(usersResponse.data?.rows ?? []);
+        setAccessLogs(accessResponse.data?.rows ?? []);
+      } catch (error) {
+        if (isMounted) {
+          setLoadError("Impossible de charger l'administration depuis Laravel");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadAdminData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredUsers = users.filter((user) =>
+
+  const filteredUsers = useMemo(() => users.filter((user) =>
     [user.nom, user.email, user.role, user.status].join(" ").toLowerCase().includes(normalizedSearch)
-  );
-  const userPageCount = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
-  const safeUserPage = Math.min(userPage, userPageCount);
-  const paginatedUsers = filteredUsers.slice((safeUserPage - 1) * USERS_PER_PAGE, safeUserPage * USERS_PER_PAGE);
-  const userStartIndex = filteredUsers.length === 0 ? 0 : (safeUserPage - 1) * USERS_PER_PAGE + 1;
-  const userEndIndex = Math.min(safeUserPage * USERS_PER_PAGE, filteredUsers.length);
-  const filteredAccessLogs = accessLogs.filter((log) =>
-    [log.utilisateur, log.heure_connexion, log.heure_deconnexion, log.commande].join(" ").toLowerCase().includes(normalizedSearch)
-  );
-  const accessPageCount = Math.max(1, Math.ceil(filteredAccessLogs.length / USERS_PER_PAGE));
-  const safeAccessPage = Math.min(accessPage, accessPageCount);
-  const paginatedAccessLogs = filteredAccessLogs.slice((safeAccessPage - 1) * USERS_PER_PAGE, safeAccessPage * USERS_PER_PAGE);
-  const accessStartIndex = filteredAccessLogs.length === 0 ? 0 : (safeAccessPage - 1) * USERS_PER_PAGE + 1;
-  const accessEndIndex = Math.min(safeAccessPage * USERS_PER_PAGE, filteredAccessLogs.length);
+  ), [normalizedSearch, users]);
+
+  const filteredAccessLogs = useMemo(() => accessLogs.filter((log) =>
+    [log.utilisateur, log.heure_connexion, log.page, log.commande, log.details, log.statut].join(" ").toLowerCase().includes(normalizedSearch)
+  ), [accessLogs, normalizedSearch]);
+
+  const userMeta = getPageMeta(filteredUsers, userPage);
+  const groupedAccessSessions = useMemo(() => groupLogsByDay(filteredAccessLogs), [filteredAccessLogs]);
+  const accessMeta = getPageMeta(groupedAccessSessions, accessPage);
 
   const openCreateUserModal = () => {
     setEditingUserId(null);
+    setFormError("");
     setUserForm({ ...emptyUserForm, id_user: createUserId(users.length) });
     setIsUserModalOpen(true);
   };
 
   const openViewUserModal = (user) => {
-    setEditingUserId(user.id_user);
-    setUserForm(user);
+    setEditingUserId(getNumericUserId(user));
+    setFormError("");
+    setUserForm({ ...emptyUserForm, ...user, password: "" });
     setIsUserModalOpen(true);
   };
 
   const closeUserModal = () => {
     setIsUserModalOpen(false);
     setEditingUserId(null);
+    setFormError("");
     setUserForm(emptyUserForm);
   };
 
-  // A connecter a DELETE /users/:id_user lorsque le backend sera pret.
-  const deleteUser = (userId) => {
-    setUsers((currentUsers) => currentUsers.filter((user) => user.id_user !== userId));
+  const deleteUser = async (user) => {
+    const userId = getNumericUserId(user);
+
+    if (!userId) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/users/${userId}`);
+      setUsers((currentUsers) => currentUsers.filter((item) => getNumericUserId(item) !== String(userId)));
+      logAudit({ page: "Administration", action: "Suppression utilisateur", details: `${user.nom} - ${user.email}` });
+    } catch (error) {
+      setLoadError("Impossible de supprimer cet utilisateur");
+    }
   };
 
   const updateUserForm = (field, value) => {
     setUserForm((currentForm) => ({ ...currentForm, [field]: value }));
   };
 
-  // A connecter a POST /users ou PUT /users/:id_user selon le mode du formulaire.
-  const saveUser = (event) => {
+  const saveUser = async (event) => {
     event.preventDefault();
+    setIsSaving(true);
+    setFormError("");
 
-    if (editingUserId) {
-      setUsers((currentUsers) => currentUsers.map((user) => (
-        user.id_user === editingUserId ? { ...userForm, id_user: editingUserId } : user
-      )));
-    } else {
-      setUsers((currentUsers) => [...currentUsers, { ...userForm, id_user: userForm.id_user || createUserId(currentUsers.length) }]);
+    const payload = {
+      nom: userForm.nom,
+      email: userForm.email,
+      role: userForm.role,
+      status: userForm.status,
+      password: userForm.password
+    };
+
+    try {
+      if (editingUserId) {
+        const response = await api.put(`/api/users/${editingUserId}`, payload);
+        setUsers((currentUsers) => currentUsers.map((user) => (
+          getNumericUserId(user) === String(editingUserId) ? response.data : user
+        )));
+        logAudit({ page: "Administration", action: "Modification utilisateur", details: `${response.data.nom} - ${response.data.email} - ${response.data.role}` });
+      } else {
+        const response = await api.post("/api/users", payload);
+        setUsers((currentUsers) => [...currentUsers, response.data]);
+        logAudit({ page: "Administration", action: "Creation utilisateur", details: `${response.data.nom} - ${response.data.email} - ${response.data.role}` });
+      }
+
+      closeUserModal();
+    } catch (error) {
+      setFormError("Impossible d'enregistrer cet utilisateur");
+    } finally {
+      setIsSaving(false);
     }
-
-    closeUserModal();
   };
+
+  const userEmptyLabel = loadError || (isLoading ? "Chargement des utilisateurs..." : "Aucun utilisateur trouve");
+  const accessEmptyLabel = loadError || (isLoading ? "Chargement des acces..." : "Aucun acces trouve");
 
   return (
     <section className="panel wide-panel admin-page-panel">
@@ -160,7 +291,7 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedUsers.map((user) => (
+                {userMeta.paginatedRows.map((user) => (
                   <tr key={user.id_user}>
                     <td>{user.nom}</td>
                     <td>{user.email}</td>
@@ -169,14 +300,14 @@ export function AdminPage() {
                     <td>
                       <div className="table-actions">
                         <button type="button" onClick={() => openViewUserModal(user)}>Voir</button>
-                        <button type="button" onClick={() => deleteUser(user.id_user)}>Supprimer</button>
+                        <button type="button" onClick={() => deleteUser(user)}>Supprimer</button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {filteredUsers.length === 0 && (
                   <tr className="empty-table-row">
-                    <td colSpan="5">Aucun utilisateur trouve</td>
+                    <td colSpan="5">{userEmptyLabel}</td>
                   </tr>
                 )}
               </tbody>
@@ -185,22 +316,22 @@ export function AdminPage() {
 
           {filteredUsers.length > USERS_PER_PAGE && (
             <div className="users-pagination" aria-label="Pagination des utilisateurs">
-              <span>{userStartIndex}-{userEndIndex} sur {filteredUsers.length} utilisateurs</span>
+              <span>{userMeta.startIndex}-{userMeta.endIndex} sur {filteredUsers.length} utilisateurs</span>
               <div>
                 <button
                   className="toolbar-button"
                   type="button"
                   onClick={() => setUserPage((currentPage) => Math.max(1, currentPage - 1))}
-                  disabled={safeUserPage === 1}
+                  disabled={userMeta.safePage === 1}
                 >
                   Precedent
                 </button>
-                <strong>Page {safeUserPage} / {userPageCount}</strong>
+                <strong>Page {userMeta.safePage} / {userMeta.pageCount}</strong>
                 <button
                   className="toolbar-button"
                   type="button"
-                  onClick={() => setUserPage((currentPage) => Math.min(userPageCount, currentPage + 1))}
-                  disabled={safeUserPage === userPageCount}
+                  onClick={() => setUserPage((currentPage) => Math.min(userMeta.pageCount, currentPage + 1))}
+                  disabled={userMeta.safePage === userMeta.pageCount}
                 >
                   Suivant
                 </button>
@@ -215,55 +346,73 @@ export function AdminPage() {
           <div className="admin-section-header">
             <div>
               <h3>Etat des acces</h3>
-              <p>Suivi des comptes actifs, connexions, deconnexions et commandes effectuees.</p>
+              <p>Journal d audit des connexions, pages consultees, exports, alertes et actions realisees.</p>
             </div>
           </div>
-          <div className="access-log-table">
-            <table>
+          <div className="audit-summary-table-wrap">
+            <table className="audit-summary-table">
               <thead>
                 <tr>
                   <th>Utilisateur</th>
-                  <th>Connexion</th>
-                  <th>Deconnexion</th>
-                  <th>Commande</th>
+                  <th>Role</th>
+                  <th>Jour</th>
+                  <th>Derniere activite</th>
+                  <th>Connexions</th>
+                  <th>Actions</th>
+                  <th>Statut</th>
+                  <th>Detail</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedAccessLogs.map((log) => (
-                  <tr key={log.id_log}>
-                    <td>{log.utilisateur}</td>
-                    <td>{log.heure_connexion}</td>
-                    <td>{log.heure_deconnexion}</td>
-                    <td>{log.commande}</td>
+                {accessMeta.paginatedRows.map((session) => (
+                  <tr key={session.id}>
+                    <td><strong>{session.utilisateur}</strong></td>
+                    <td>{session.role}</td>
+                    <td>{session.day}</td>
+                    <td>{session.lastActivity}</td>
+                    <td>{session.sessionCount}</td>
+                    <td>{session.actions.length}</td>
+                    <td>
+                      {session.failedCount > 0 ? (
+                        <span className="audit-warning-pill">{session.failedCount} echec(s)</span>
+                      ) : (
+                        <span className="audit-success-pill">OK</span>
+                      )}
+                    </td>
+                    <td>
+                      <button className="toolbar-button" type="button" onClick={() => setSelectedAuditSession(session)}>
+                        Voir detail
+                      </button>
+                    </td>
                   </tr>
                 ))}
-                {filteredAccessLogs.length === 0 && (
-                  <tr className="empty-table-row">
-                    <td colSpan="4">Aucun acces trouve</td>
-                  </tr>
-                )}
               </tbody>
             </table>
-          </div>
 
-          {filteredAccessLogs.length > USERS_PER_PAGE && (
+            {filteredAccessLogs.length === 0 && (
+              <div className="alerts-empty-state">
+                <strong>{accessEmptyLabel}</strong>
+              </div>
+            )}
+          </div>
+          {groupedAccessSessions.length > USERS_PER_PAGE && (
             <div className="users-pagination" aria-label="Pagination des acces">
-              <span>{accessStartIndex}-{accessEndIndex} sur {filteredAccessLogs.length} acces</span>
+              <span>{accessMeta.startIndex}-{accessMeta.endIndex} sur {groupedAccessSessions.length} journees</span>
               <div>
                 <button
                   className="toolbar-button"
                   type="button"
                   onClick={() => setAccessPage((currentPage) => Math.max(1, currentPage - 1))}
-                  disabled={safeAccessPage === 1}
+                  disabled={accessMeta.safePage === 1}
                 >
                   Precedent
                 </button>
-                <strong>Page {safeAccessPage} / {accessPageCount}</strong>
+                <strong>Page {accessMeta.safePage} / {accessMeta.pageCount}</strong>
                 <button
                   className="toolbar-button"
                   type="button"
-                  onClick={() => setAccessPage((currentPage) => Math.min(accessPageCount, currentPage + 1))}
-                  disabled={safeAccessPage === accessPageCount}
+                  onClick={() => setAccessPage((currentPage) => Math.min(accessMeta.pageCount, currentPage + 1))}
+                  disabled={accessMeta.safePage === accessMeta.pageCount}
                 >
                   Suivant
                 </button>
@@ -273,6 +422,36 @@ export function AdminPage() {
         </section>
       )}
 
+      {selectedAuditSession && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="user-modal audit-detail-modal" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title">
+            <div className="audit-detail-topbar">
+              <div>
+                <h3 id="audit-detail-title">Detail de la journee</h3>
+                <p>{selectedAuditSession.utilisateur} - {selectedAuditSession.role} - {selectedAuditSession.day}</p>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setSelectedAuditSession(null)}>Fermer</button>
+            </div>
+            <div className="audit-timeline">
+              {selectedAuditSession.actions.map((log) => (
+                <article className={`audit-timeline-item ${log.commande_type || "action"}`} key={log.id_log}>
+                  <div className="audit-timeline-meta">
+                    <strong>{log.heure_connexion}</strong>
+                    <span>{log.page || "--"}</span>
+                  </div>
+                  <div className="audit-timeline-body">
+                    <div className="audit-timeline-title">
+                      <span className={`command-badge ${log.commande_type || "action"}`}>{log.commande}</span>
+                      <span className={`audit-status ${log.statut || "success"}`}>{log.statut || "success"}</span>
+                    </div>
+                    <p>{log.details || "--"}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
       {isUserModalOpen && (
         <div className="modal-backdrop" role="presentation">
           <form className="user-modal" onSubmit={saveUser}>
@@ -282,6 +461,8 @@ export function AdminPage() {
               </div>
               <button type="button" className="modal-close" onClick={closeUserModal}>Fermer</button>
             </div>
+
+            {formError && <div className="alerts-empty-state"><strong>{formError}</strong></div>}
 
             <div className="form-grid">
               <label>
@@ -295,7 +476,7 @@ export function AdminPage() {
               <label>
                 Role
                 <select value={userForm.role} onChange={(event) => updateUserForm("role", event.target.value)}>
-                  {roles.map((role) => <option key={role.name} value={role.name}>{role.name}</option>)}
+                  {roles.map((role) => <option key={role} value={role}>{role}</option>)}
                 </select>
               </label>
               <label>
@@ -310,14 +491,15 @@ export function AdminPage() {
                   type="text"
                   value={userForm.password}
                   onChange={(event) => updateUserForm("password", event.target.value)}
-                  required
+                  required={!editingUserId}
+                  placeholder={editingUserId ? "Laisser vide pour conserver" : ""}
                 />
               </label>
             </div>
 
             <div className="modal-actions">
               <button type="button" className="toolbar-button" onClick={closeUserModal}>Annuler</button>
-              <button type="submit" className="primary-button small">Enregistrer</button>
+              <button type="submit" className="primary-button small" disabled={isSaving}>{isSaving ? "Enregistrement..." : "Enregistrer"}</button>
             </div>
           </form>
         </div>
@@ -325,4 +507,23 @@ export function AdminPage() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

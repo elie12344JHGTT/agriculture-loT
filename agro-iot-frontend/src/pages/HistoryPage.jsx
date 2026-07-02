@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
 import api from "../api/axios";
+import { logAudit } from "../api/audit";
 
 const tabs = ["Mesures", "Alertes", "Actions"];
 const HISTORY_ROWS_PER_PAGE = 7;
@@ -186,14 +187,17 @@ export function HistoryPage() {
 
   function exportSelectedMeasures() {
     exportRowsAsCsv("historique-mesures-selectionnees.csv", ["date_mesure", "parcelle", "capteur", "type_mesure", "valeur", "unite"], selectedMeasureRows);
+    logAudit({ page: "Historique", action: "Export CSV", details: `Export mesures - ${selectedMeasureRows.length} ligne(s)` });
   }
 
   function exportSelectedAlerts() {
     exportRowsAsCsv("historique-alertes-selectionnees.csv", ["date_creation", "parcelle", "type_alerte", "message", "niveau", "statut", "regle"], selectedAlertRows);
+    logAudit({ page: "Historique", action: "Export CSV", details: `Export alertes - ${selectedAlertRows.length} ligne(s)` });
   }
 
   function exportSelectedActions() {
     exportRowsAsCsv("historique-actions-selectionnees.csv", ["date_action", "actionneur", "type_action", "source", "statut", "utilisateur"], selectedActionRows);
+    logAudit({ page: "Historique", action: "Export CSV", details: `Export actions - ${selectedActionRows.length} ligne(s)` });
   }
 
   const measuresEmptyLabel = loadError || (isLoading ? "Chargement des mesures..." : "Aucune mesure recue");
@@ -359,3 +363,4 @@ export function HistoryPage() {
     </section>
   );
 }
+

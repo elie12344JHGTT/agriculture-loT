@@ -1,4 +1,5 @@
 import React, { useState } from "https://esm.sh/react@19.1.1";
+import api from "../api/axios";
 import logoAvecNom from "../assets/logos/agri_logo-transparante.png";
 import thermometerIcon from "../assets/icons/thermometer.png";
 import humidityIcon from "../assets/icons/humidity.png";
@@ -9,21 +10,26 @@ import passwordIcon from "../assets/icons/locked-computer.png";
 import showIcon from "../assets/icons/show.png";
 import hideIcon from "../assets/icons/hide.png";
 
-
-
-
 export function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState("admin@agroiot.cd");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
-  // A connecter a POST /auth/login lorsque le backend Laravel sera disponible.
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    // Role temporaire pour la maquette; le backend renverra le vrai role utilisateur.
-    const normalizedEmail = email.toLowerCase();
-    const role = normalizedEmail.includes("admin") ? "Admin" : normalizedEmail.includes("tech") ? "Technicien" : "Agriculteur";
-    onLogin({ email, role });
+    setIsSubmitting(true);
+    setLoginError("");
+
+    try {
+      const response = await api.post("/api/auth/login", { email, password });
+      onLogin(response.data.user);
+    } catch (error) {
+      setLoginError(error.response?.data?.message || "Impossible de se connecter");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -53,7 +59,7 @@ export function LoginPage({ onLogin }) {
           <label htmlFor="email">Email</label>
           <div className="input-with-icon">
             <img src={emailIcon} alt="" />
-            <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </div>
           <label htmlFor="password">Mot de passe</label>
           <div className="input-with-icon password-field">
@@ -63,6 +69,7 @@ export function LoginPage({ onLogin }) {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              required
             />
             <button
               className="password-toggle"
@@ -73,7 +80,10 @@ export function LoginPage({ onLogin }) {
               <img src={showPassword ? hideIcon : showIcon} alt="" />
             </button>
           </div>
-          <button className="primary-button" type="submit">Se connecter</button>
+          {loginError && <div className="login-error" role="alert">{loginError}</div>}
+          <button className="primary-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Connexion..." : "Se connecter"}
+          </button>
         </form>
         <div className="account-help">
           <strong>Gestion des comptes et mots de passe</strong>
@@ -83,6 +93,5 @@ export function LoginPage({ onLogin }) {
     </main>
   );
 }
-
 
 

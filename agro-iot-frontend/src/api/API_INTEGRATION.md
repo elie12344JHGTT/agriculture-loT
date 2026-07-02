@@ -1,92 +1,41 @@
-# Guide d'integration API - Frontend Agro IoT
+# Integration API - Agro IoT
 
-Ce fichier sert de point de reference pour connecter le frontend au backend.
-Chaque API indique ou elle sera utilisee dans le frontend, son role, et le format de donnees attendu.
+Ce fichier explique les routes Laravel actuellement utilisees par le frontend React et le role de chaque API.
+Il sert de reference pour le developpeur backend afin de maintenir les routes, les champs JSON et les tables attendues.
 
-## Configuration generale
+## Configuration frontend
 
-Le frontend doit utiliser une URL backend unique, par exemple :
+Le frontend utilise l'instance Axios definie dans :
+
+```txt
+agro-iot-frontend/src/api/axios.js
+```
+
+Base URL actuellement attendue en local :
+
+```txt
+http://127.0.0.1:8000
+```
+
+Les appels frontend utilisent ensuite le prefixe `/api`, par exemple :
 
 ```js
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+api.get("/api/measurements/latest")
 ```
 
-A prevoir dans `.env` :
+## Authentification et session frontend
 
-```env
-VITE_API_BASE_URL=http://localhost:3000/api
-```
+### POST `/api/auth/login`
 
-Toutes les requetes authentifiees devront envoyer le token recu a la connexion. Avec Laravel Sanctum/JWT, le frontend enverra :
+Utilise par : `src/pages/LoginPage.jsx`
 
-```http
-Authorization: Bearer <token>
-```
+Role :
+- verifier email + mot de passe dans Laravel ;
+- refuser les comptes non actifs ;
+- renvoyer l'utilisateur connecte avec son role ;
+- creer une session d'audit pour tracer les actions de cette connexion.
 
-
-## Note backend Laravel
-
-Le backend sera developpe avec Laravel. Les routes ci-dessous peuvent etre placees dans `routes/api.php`.
-
-Recommandation Laravel :
-- utiliser Laravel Sanctum pour l'authentification API, ou JWT si l'equipe backend prefere;
-- proteger les routes privees avec un middleware comme `auth:sanctum`;
-- retourner uniquement du JSON;
-- garder les noms de champs identiques a ceux indiques dans ce document pour faciliter le branchement frontend.
-
-Exemple d'organisation Laravel possible :
-
-```php
-Route::post('/auth/login', [AuthController::class, 'login']);
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-
-    Route::get('/measurements/latest', [MeasurementController::class, 'latest']);
-    Route::get('/measurements/chart', [MeasurementController::class, 'chart']);
-
-    Route::post('/actuators/irrigation', [ActuatorController::class, 'irrigation']);
-    Route::post('/actuators/ventilation', [ActuatorController::class, 'ventilation']);
-    Route::post('/actuators/light', [ActuatorController::class, 'light']);
-
-    Route::get('/alerts/active', [AlertController::class, 'active']);
-    Route::get('/thresholds', [ThresholdController::class, 'index']);
-    Route::put('/thresholds', [ThresholdController::class, 'update']);
-
-    Route::get('/history/measurements', [HistoryController::class, 'measurements']);
-    Route::get('/history/alerts', [HistoryController::class, 'alerts']);
-    Route::get('/history/actions', [HistoryController::class, 'actions']);
-    Route::get('/exports/history', [ExportController::class, 'history']);
-
-    Route::apiResource('/users', UserController::class);
-    Route::get('/access-logs', [AccessLogController::class, 'index']);
-});
-```
-
-Format recommande pour les erreurs Laravel :
-
-```json
-{
-  "message": "Erreur de validation",
-  "errors": {
-    "email": ["L'adresse email est obligatoire."]
-  }
-}
-```
-
-Le frontend pourra afficher `message` comme erreur principale.
-
-## 1. Authentification
-
-Fichier frontend concerne : `src/pages/LoginPage.jsx`
-
-### Connexion utilisateur
-
-`POST /auth/login`
-
-Role : connecter un utilisateur et recuperer son role pour afficher le bon badge dans le header.
-
-Body attendu :
+Body envoye :
 
 ```json
 {
@@ -99,29 +48,46 @@ Reponse attendue :
 
 ```json
 {
-  "token": "jwt_token",
   "user": {
+    "id": 1,
     "id_user": "USR-001",
-    "nom": "Nom utilisateur",
+    "name": "elie",
+    "nom": "elie",
     "email": "admin@agroiot.cd",
     "role": "Admin",
-    "status": "Actif"
+    "status": "Actif",
+    "audit_session_id": "SES-20260702123000-1-a1b2c3"
   }
 }
 ```
 
-Utilisation frontend :
-- stocker `token` pour les prochaines requetes;
-- stocker `user` dans `currentUser`;
-- afficher `user.role` dans `src/layout/Header.jsx`.
+Important :
+- `audit_session_id` est garde par le frontend et renvoye dans les logs d'audit ;
+- l'utilisateur connecte est conserve dans `localStorage` avec la page active ;
+- recharger la page ne doit pas etre considere comme une deconnexion ;
+- seule l'action explicite sur le bouton Deconnexion appelle `/api/auth/logout`.
 
-### Deconnexion utilisateur
+### POST `/api/auth/logout`
 
-`POST /auth/logout`
+Utilise par : `src/App.jsx`
 
-Role : enregistrer la deconnexion dans les logs backend.
+Role :
+- enregistrer une vraie deconnexion dans l'audit ;
+- ne doit etre appele que lorsque l'utilisateur clique sur Deconnexion.
 
-Reponse attendue :
+Body envoye :
+
+```json
+{
+  "session_id": "SES-20260702123000-1-a1b2c3",
+  "user_id": 1,
+  "user_name": "elie",
+  "user_email": "admin@agroiot.cd",
+  "user_role": "Admin"
+}
+```
+
+Reponse :
 
 ```json
 {
@@ -129,203 +95,221 @@ Reponse attendue :
 }
 ```
 
-Utilisation frontend :
-- vider le token;
-- remettre `currentUser` a `null`;
-- retourner a la page de connexion.
+## Journal d'audit
 
-## 2. Dashboard - mesures capteurs
+### Table Laravel `audit_logs`
 
-Fichier frontend concerne : `src/pages/DashboardPage.jsx`
-
-### Dernieres mesures
-
-`GET /measurements/latest`
-
-Role : alimenter les 6 cartes du dashboard.
-
-Reponse attendue :
-
-```json
-{
-  "temperature": { "value": 0, "unit": "C", "status": "--" },
-  "air_humidity": { "value": 0, "unit": "%", "status": "--" },
-  "soil_humidity": { "value": 0, "unit": "%", "status": "--" },
-  "co2": { "value": 0, "unit": "ppm", "status": "--" },
-  "light": { "value": 0, "unit": "lux", "status": "--" },
-  "water_level": { "value": 0, "unit": "%", "status": "--" }
-}
-```
-
-### Donnees du graphique
-
-`GET /measurements/chart?type=temperature&period=day`
-
-Role : alimenter le graphique Evolution des mesures.
-
-Reponse attendue :
-
-```json
-{
-  "labels": ["08:00", "09:00"],
-  "series": [0, 0],
-  "unit": "C"
-}
-```
-
-## 3. Commandes manuelles actionneurs
-
-Fichier frontend concerne : `src/pages/DashboardPage.jsx`
-
-### Demarrer irrigation
-
-`POST /actuators/irrigation`
-
-Body attendu :
-
-```json
-{
-  "command": "start",
-  "source": "manual"
-}
-```
-
-### Activer ventilation
-
-`POST /actuators/ventilation`
-
-Body attendu :
-
-```json
-{
-  "command": "start",
-  "source": "manual"
-}
-```
-
-### Allumer eclairage
-
-`POST /actuators/light`
-
-Body attendu :
-
-```json
-{
-  "command": "start",
-  "source": "manual"
-}
-```
-
-Reponse commune attendue :
-
-```json
-{
-  "success": true,
-  "id_action": "ACT-001",
-  "status": "En attente"
-}
-```
-
-Utilisation frontend :
-- afficher un etat `En attente`, `Executee` ou `Echec`;
-- ajouter la commande dans l'historique des actions via le backend.
-
-
-## Script batch/CLI pour les actionneurs
-
-Un script a ete ajoute a la racine du projet :
+Migrations ajoutees :
 
 ```txt
-scripts/actionneurs-cli.bat
+agro-iot-backend/database/migrations/2026_07_02_112500_create_audit_logs_table.php
+agro-iot-backend/database/migrations/2026_07_02_113500_add_session_id_to_audit_logs_table.php
 ```
 
-Il peut etre utilise en mode menu ou en mode direct pour envoyer des commandes au backend Laravel.
+Champs principaux :
 
-Commandes directes :
+| Champ | Role |
+| --- | --- |
+| `session_id` | identifiant d'une session de connexion |
+| `user_id` | id utilisateur Laravel, nullable pour tentative echouee |
+| `user_name` | nom affiche dans l'audit |
+| `user_email` | email utilisateur ou email tente au login |
+| `user_role` | role au moment de l'action |
+| `page` | page concernee : Login, Dashboard, Alertes, etc. |
+| `action` | action realisee |
+| `details` | phrase explicative |
+| `status` | `success` ou `failed` |
+| `ip_address` | adresse IP de la requete |
+| `occurred_at` | date/heure de l'action |
 
-```bat
-scripts\actionneurs-cli.bat irrigation start
-scripts\actionneurs-cli.bat ventilation stop
-scripts\actionneurs-cli.bat light start
-scripts\actionneurs-cli.bat all start batch
-```
+### POST `/api/audit-logs`
 
-Le script appelle les routes suivantes :
+Utilise par : `src/api/audit.js`
 
-```txt
-POST /api/actuators/irrigation
-POST /api/actuators/ventilation
-POST /api/actuators/light
-```
-
-Variables que le backend peut utiliser pour le dynamiser :
-
-```bat
-set AGRO_API_BASE_URL=http://127.0.0.1:8000/api
-set AGRO_API_TOKEN=votre_token_api
-```
+Role : enregistrer toute action utilisateur depuis le frontend :
+- consultation de page ;
+- export CSV ;
+- controle actionneur ;
+- modification des seuils ;
+- resolution d'alerte ;
+- creation, modification, suppression utilisateur ;
+- tentative de connexion echouee cote login est aussi enregistree directement par Laravel.
 
 Body envoye :
 
 ```json
 {
-  "command": "start",
-  "source": "cli"
+  "session_id": "SES-20260702123000-1-a1b2c3",
+  "user_id": 1,
+  "user_name": "elie",
+  "user_email": "admin@agroiot.cd",
+  "user_role": "Admin",
+  "page": "Dashboard",
+  "action": "Consultation page Dashboard",
+  "details": "Ouverture de la page Dashboard",
+  "status": "success"
 }
 ```
 
-Valeurs possibles de `source` :
+Reponse :
+
+```json
+{
+  "success": true,
+  "id_log": "AUD-001"
+}
+```
+
+### GET `/api/access-logs?limit=500&search=texte`
+
+Utilise par : `src/pages/AdminPage.jsx`, onglet `Etat des acces`.
+
+Role : renvoyer les lignes d'audit au frontend.
+Le frontend regroupe ensuite l'affichage par utilisateur + journee pour eviter de repeter plusieurs fois le meme utilisateur.
+Le bouton `Voir detail` ouvre la timeline complete des actions de cette journee.
+
+Format attendu :
+
+```json
+{
+  "rows": [
+    {
+      "id_log": "AUD-001",
+      "session_id": "SES-20260702123000-1-a1b2c3",
+      "utilisateur": "elie",
+      "user_role": "Admin",
+      "heure_connexion": "2026-07-02 12:30",
+      "heure_deconnexion": "--",
+      "page": "Dashboard",
+      "commande": "Consultation page Dashboard",
+      "commande_type": "action",
+      "details": "Ouverture de la page Dashboard",
+      "statut": "success"
+    }
+  ],
+  "total": 1
+}
+```
+
+Valeurs de `commande_type` :
 
 ```txt
-manual
-cli
-batch
+login
+logout
+action
+failed
 ```
 
-Le backend Laravel peut enregistrer ces commandes dans la table des actions/scripts, puis transmettre la commande vers l'ESP32.
+## Dashboard
 
-## 4. Alertes et seuils
+### GET `/api/measurements/latest`
 
-Fichier frontend concerne : `src/pages/AlertsPage.jsx`
+Utilise par : `src/pages/DashboardPage.jsx`
 
-### Liste des alertes actives
+Role : alimenter les 6 cartes capteurs du tableau de bord.
 
-`GET /alerts/active`
-
-Reponse attendue :
+Reponse :
 
 ```json
-[
-  {
-    "id_alerte": "ALT-001",
-    "date_creation": "2026-06-26T10:00:00Z",
-    "parcelle": "Serre principale",
-    "type_alerte": "CO2",
-    "message": "Concentration CO2 elevee",
-    "niveau": "Moyen",
-    "statut": "Ouverte",
-    "action": "Ventilation recommandee"
-  }
-]
+{
+  "temperature": { "value": 25, "unit": "C", "status": "Recu", "date": "2026-07-02 12:00" },
+  "air_humidity": { "value": 60, "unit": "%", "status": "Recu", "date": "2026-07-02 12:00" },
+  "soil_humidity": { "value": 45, "unit": "%", "status": "Recu", "date": "2026-07-02 12:00" },
+  "co2": { "value": 420, "unit": "ppm", "status": "Recu", "date": "2026-07-02 12:00" },
+  "light": { "value": 800, "unit": "lux", "status": "Recu", "date": "2026-07-02 12:00" },
+  "water_level": { "value": 75, "unit": "%", "status": "Recu", "date": "2026-07-02 12:00" }
+}
 ```
 
-### Recuperer les seuils
+### GET `/api/measurements/chart?type=temperature&period=day`
 
-`GET /thresholds`
+Utilise par : `src/pages/DashboardPage.jsx`
 
-Reponse attendue :
+Role : alimenter le graphique d'evolution des mesures.
+
+Reponse :
 
 ```json
-[
-  { "key": "soil_humidity_min", "label": "Humidite sol minimale", "value": 30, "unit": "%", "rule": "Declencher irrigation" }
-]
+{
+  "labels": ["08:00", "09:00"],
+  "series": [24, 25],
+  "unit": "C"
+}
 ```
 
-### Modifier les seuils
+### POST `/api/actuators/{actuator}`
 
-`PUT /thresholds`
+Utilise par :
+- `src/pages/DashboardPage.jsx`
+- `scripts/actionneurs-cli.bat`
 
-Body attendu :
+Role : declencher une commande manuelle ou CLI vers un actionneur.
+
+Valeurs de `{actuator}` :
+
+```txt
+irrigation
+ventilation
+light
+```
+
+Body :
+
+```json
+{
+  "command": "start",
+  "source": "manual"
+}
+```
+
+Valeurs possibles :
+
+```txt
+command: start | stop
+source: manual | cli | batch
+```
+
+Reponse :
+
+```json
+{
+  "success": true,
+  "id_action": "ACT-001",
+  "status": "Executee"
+}
+```
+
+Le frontend journalise aussi cette action via `/api/audit-logs`.
+
+## Alertes et seuils
+
+### GET `/api/alerts/active`
+
+Utilise par : `src/pages/AlertsPage.jsx`
+
+Role : afficher les alertes actives.
+
+### PUT `/api/alerts/{alert}/resolve`
+
+Utilise par : `src/pages/AlertsPage.jsx`
+
+Role : marquer une alerte comme resolue.
+Le frontend ajoute ensuite une trace d'audit : `Resolution alerte`.
+
+### GET `/api/thresholds`
+
+Utilise par : `src/pages/AlertsPage.jsx`
+
+Role : afficher les regles/seuils automatiques.
+
+### PUT `/api/thresholds`
+
+Utilise par : `src/pages/AlertsPage.jsx`
+
+Role : enregistrer les modifications de seuils/regles automatiques.
+Le frontend ajoute une trace d'audit : `Modification regles automatiques`.
+
+Body :
 
 ```json
 [
@@ -333,82 +317,72 @@ Body attendu :
 ]
 ```
 
-## 5. Historique
+### GET `/api/automation-rules`
 
-Fichier frontend concerne : `src/pages/HistoryPage.jsx`
+Utilise par : `src/pages/AlertsPage.jsx`
 
-Le frontend contient deja une pagination de 7 lignes par tableau.
-Le backend peut aussi paginer si le volume devient important.
+Role : afficher les regles automatiques configurees cote backend.
 
-### Historique des mesures
+### GET `/api/notifications/channels`
 
-`GET /history/measurements?page=1&limit=7&type=CO2&date=2026-06-26`
+Utilise par : `src/pages/AlertsPage.jsx`
 
-Reponse attendue :
+Role : afficher l'etat des canaux de notification.
 
-```json
-{
-  "rows": [
-    {
-      "id_mesure": "MES-001",
-      "date_mesure": "2026-06-26T10:00:00Z",
-      "parcelle": "Serre principale",
-      "capteur": "SEN0159",
-      "type_mesure": "CO2",
-      "valeur": 0,
-      "unite": "ppm"
-    }
-  ],
-  "total": 1
-}
-```
+## Historique
 
-### Historique des alertes
+Utilise par : `src/pages/HistoryPage.jsx`
 
-`GET /history/alerts?page=1&limit=7`
+### GET `/api/history/measurements?limit=500`
 
-### Historique des actions
+Role : renvoyer l'historique des mesures.
 
-`GET /history/actions?page=1&limit=7`
+### GET `/api/history/alerts?limit=500`
 
-### Export CSV
+Role : renvoyer l'historique des alertes.
 
-Option 1 : le frontend garde l'export CSV local avec les lignes recues.
+### GET `/api/history/actions?limit=500`
 
-Option 2 : le backend fournit un export complet :
+Role : renvoyer l'historique des actions/commandes.
 
-`GET /exports/history?type=measurements&format=csv`
+Le frontend gere :
+- recherche ;
+- pagination par 7 lignes ;
+- export CSV local des donnees recues ;
+- journalisation audit des exports CSV.
 
-## 6. Administration - utilisateurs
+## Administration utilisateurs
 
-Fichier frontend concerne : `src/pages/AdminPage.jsx`
+Utilise par : `src/pages/AdminPage.jsx`, onglet `Gestion des utilisateurs`.
 
-### Liste des utilisateurs
+### GET `/api/users?limit=500&search=texte`
 
-`GET /users?page=1&limit=7&search=texte`
+Role : lister les utilisateurs Laravel avec leurs roles.
 
-Reponse attendue :
+Reponse :
 
 ```json
 {
   "rows": [
     {
+      "id": 1,
       "id_user": "USR-001",
-      "nom": "Nom utilisateur",
-      "email": "user@agroiot.cd",
-      "role": "Agriculteur",
-      "status": "Actif"
+      "nom": "elie",
+      "email": "admin@agroiot.cd",
+      "role": "Admin",
+      "status": "Actif",
+      "password": ""
     }
   ],
   "total": 1
 }
 ```
 
-### Creer un utilisateur
+### POST `/api/users`
 
-`POST /users`
+Role : creer un utilisateur depuis l'administration.
 
-Body attendu :
+Body :
 
 ```json
 {
@@ -420,58 +394,27 @@ Body attendu :
 }
 ```
 
-Important backend :
-- le mot de passe ne doit jamais etre renvoye au frontend;
-- le backend doit stocker seulement le hash du mot de passe.
+Important :
+- l'administrateur attribue le mot de passe ;
+- Laravel doit stocker uniquement le hash ;
+- ne jamais renvoyer le mot de passe au frontend ;
+- le frontend journalise l'action `Creation utilisateur`.
 
-### Modifier un utilisateur
+### PUT `/api/users/{user}`
 
-`PUT /users/:id_user`
+Role : modifier nom, email, role, statut ou mot de passe d'un utilisateur.
+Le mot de passe est optionnel : s'il est vide, il ne doit pas etre modifie.
 
-Body attendu :
+Le frontend journalise l'action `Modification utilisateur`.
 
-```json
-{
-  "nom": "Nom utilisateur",
-  "email": "user@agroiot.cd",
-  "role": "Technicien",
-  "status": "Actif",
-  "password": "nouveau_mot_de_passe_optionnel"
-}
-```
+### DELETE `/api/users/{user}`
 
-### Supprimer un utilisateur
+Role : supprimer un utilisateur.
+Le frontend journalise l'action `Suppression utilisateur`.
 
-`DELETE /users/:id_user`
+## Roles et affichage frontend
 
-## 7. Administration - etat des acces
-
-Fichier frontend concerne : `src/pages/AdminPage.jsx`
-
-### Logs des acces
-
-`GET /access-logs?page=1&limit=7&search=texte`
-
-Reponse attendue :
-
-```json
-{
-  "rows": [
-    {
-      "id_log": "LOG-001",
-      "utilisateur": "Nom utilisateur",
-      "heure_connexion": "2026-06-26T10:00:00Z",
-      "heure_deconnexion": "2026-06-26T11:00:00Z",
-      "commande": "Irrigation"
-    }
-  ],
-  "total": 1
-}
-```
-
-## 8. Roles attendus cote frontend
-
-Les roles actuellement prevus dans l'interface :
+Roles attendus :
 
 ```txt
 Admin
@@ -479,9 +422,7 @@ Agriculteur
 Technicien
 ```
 
-Le backend doit renvoyer exactement ces valeurs ou fournir une table de correspondance.
-
-Affichage frontend par role :
+Affichage par role :
 
 | Role | Pages visibles |
 | --- | --- |
@@ -489,31 +430,20 @@ Affichage frontend par role :
 | Agriculteur | Dashboard, Historique, Alertes |
 | Technicien | Dashboard, Historique, Alertes |
 
-Important : la page Administration est reservee au role `Admin`. Le backend doit aussi proteger les routes sensibles cote serveur, car le filtrage frontend sert seulement a l'affichage.
+Important : le frontend masque les pages non autorisees, mais Laravel doit aussi proteger les routes sensibles cote backend.
 
-## 9. Etats vides a respecter
+## Etats vides
 
-Quand le backend n'a pas encore de donnees, renvoyer des tableaux vides :
+Quand il n'y a pas encore de donnees, Laravel doit renvoyer :
+
+```json
+{ "rows": [], "total": 0 }
+```
+
+ou un tableau vide selon le endpoint :
 
 ```json
 []
 ```
 
-ou pour les endpoints pagines :
-
-```json
-{
-  "rows": [],
-  "total": 0
-}
-```
-
-Le frontend affichera alors les messages :
-- aucune mesure recue;
-- aucune alerte recue;
-- aucune commande recue;
-- aucun utilisateur trouve;
-- aucun acces trouve.
-
-
-
+Le frontend affichera alors les etats vides prevus : aucune mesure, aucune alerte, aucun utilisateur, aucun acces, etc.

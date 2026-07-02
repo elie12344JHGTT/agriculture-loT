@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
 import api from "../api/axios";
+import { logAudit } from "../api/audit";
 import { sensorCards } from "../data/mockData.js";
 import { ActionButton } from "../components/ActionButton.jsx";
 import { AlertItem } from "../components/AlertItem.jsx";
@@ -159,9 +160,20 @@ export function DashboardPage() {
 
       const status = response.data?.status || response.data?.message || "Commande envoyee";
       setActionStatus((current) => ({ ...current, [actionKey]: status }));
+      logAudit({
+        page: "Dashboard",
+        action: "Controle actionneur",
+        details: `${actionKey} - ${status}`
+      });
     } catch (error) {
       const status = error.response?.status === 404 ? "Route API manquante" : "Echec envoi";
       setActionStatus((current) => ({ ...current, [actionKey]: status }));
+      logAudit({
+        page: "Dashboard",
+        action: "Echec controle actionneur",
+        details: `${actionKey} - ${status}`,
+        status: "failed"
+      });
     }
   }
 
@@ -205,6 +217,9 @@ export function DashboardPage() {
     </section>
   );
 }
+
+
+
 
 
 

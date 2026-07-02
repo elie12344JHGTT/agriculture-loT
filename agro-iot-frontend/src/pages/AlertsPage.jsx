@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
 import api from "../api/axios";
+import { logAudit } from "../api/audit";
 import { Panel } from "../components/Panel.jsx";
 
 
@@ -86,6 +87,7 @@ export function AlertsPage() {
       setThresholds(updatedThresholds);
       setSavedThresholds(updatedThresholds);
       setSaveStatus("saved");
+      logAudit({ page: "Alertes", action: "Modification seuils critiques", details: `${thresholds.length} seuil(s) enregistre(s)` });
     } catch (error) {
       setSaveStatus("error");
     }
@@ -101,6 +103,7 @@ export function AlertsPage() {
     try {
       await api.put(`/api/alerts/${alertId}/resolve`);
       setActiveAlerts((current) => current.filter((item) => item.id_alerte !== alert.id_alerte));
+      logAudit({ page: "Alertes", action: "Alerte active resolue", details: `${alert.id_alerte} - ${alert.type_alerte || "Alerte"}` });
     } catch (error) {
       setLoadError("Impossible de traiter cette alerte");
     }
@@ -236,6 +239,7 @@ export function AlertsPage() {
     </section>
   );
 }
+
 
 
 
