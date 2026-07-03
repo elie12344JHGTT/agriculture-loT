@@ -2762,8 +2762,11 @@ select {
 }
 
 .terminal-window {
-  min-height: 360px;
-  max-height: 58vh;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 430px;
+  max-height: 62vh;
   overflow: auto;
   border: 1px solid #0f2a1d;
   border-radius: 8px;
@@ -2773,6 +2776,48 @@ select {
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.92rem;
   line-height: 1.5;
+  cursor: text;
+}
+
+.terminal-window:focus-within {
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.28);
+}
+
+.terminal-log {
+  display: grid;
+  gap: 2px;
+}
+
+.terminal-input-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.terminal-input-line span {
+  color: #b8f0c6;
+  font-weight: 900;
+}
+
+.terminal-input-line input {
+  min-height: auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e9f6ee;
+  padding: 0;
+  font: inherit;
+  box-shadow: none;
+}
+
+.terminal-input-line input::placeholder {
+  color: rgba(233, 246, 238, 0.55);
+}
+
+.terminal-input-line input:disabled {
+  color: #9fc5aa;
 }
 
 .terminal-line {
@@ -2821,8 +2866,7 @@ select {
     padding: 14px;
   }
 
-  .terminal-header,
-  .terminal-command-row {
+  .terminal-header {
     grid-template-columns: 1fr;
   }
 
@@ -2831,8 +2875,10 @@ select {
   }
 
   .terminal-window {
-    min-height: 310px;
-    max-height: 52vh;
+    min-height: 360px;
+    max-height: 56vh;
     font-size: 0.84rem;
   }
 }
+
+

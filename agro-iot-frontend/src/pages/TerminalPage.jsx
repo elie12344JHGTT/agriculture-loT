@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import api from "../api/axios";
 import { logAudit } from "../api/audit";
 
@@ -56,6 +56,7 @@ export function TerminalPage() {
   const [command, setCommand] = useState("");
   const [logs, setLogs] = useState(starterLogs);
   const [isRunning, setIsRunning] = useState(false);
+  const terminalInputRef = useRef(null);
 
   const prompt = useMemo(() => (isRunning ? "execution..." : "agro-iot>"), [isRunning]);
 
@@ -141,6 +142,10 @@ export function TerminalPage() {
     executeCommand(currentCommand);
   }
 
+  function focusTerminalInput() {
+    terminalInputRef.current?.focus();
+  }
+
   return (
     <section className="page-grid">
       <div className="terminal-panel">
@@ -152,29 +157,32 @@ export function TerminalPage() {
           <span>{isRunning ? "Execution" : "Pret"}</span>
         </div>
 
-        <div className="terminal-window" aria-live="polite">
-          {logs.map((log, index) => (
-            <div className={`terminal-line ${log.type}`} key={`${log.type}-${index}-${log.text}`}>
-              {log.text}
-            </div>
-          ))}
-        </div>
+        <form className="terminal-window" onClick={focusTerminalInput} onSubmit={submit}>
+          <div className="terminal-log" aria-live="polite">
+            {logs.map((log, index) => (
+              <div className={`terminal-line ${log.type}`} key={`${log.type}-${index}-${log.text}`}>
+                {log.text}
+              </div>
+            ))}
+          </div>
 
-        <form className="terminal-command-row" onSubmit={submit}>
-          <span>{prompt}</span>
-          <input
-            type="text"
-            value={command}
-            onChange={(event) => setCommand(event.target.value)}
-            placeholder="ex: arrosage start"
-            disabled={isRunning}
-            autoComplete="off"
-          />
-          <button className="primary-button small" type="submit" disabled={isRunning || !command.trim()}>
-            Executer
-          </button>
+          <label className="terminal-input-line">
+            <span>{prompt}</span>
+            <input
+              ref={terminalInputRef}
+              type="text"
+              value={command}
+              onChange={(event) => setCommand(event.target.value)}
+              placeholder="ex: arrosage start"
+              disabled={isRunning}
+              autoComplete="off"
+              aria-label="Commande terminal"
+            />
+          </label>
         </form>
       </div>
     </section>
   );
 }
+
+
