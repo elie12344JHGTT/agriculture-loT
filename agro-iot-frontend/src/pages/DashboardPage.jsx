@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
+import React, { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import { logAudit } from "../api/audit";
 import { sensorCards } from "../data/mockData.js";
@@ -217,10 +217,3 @@ export function DashboardPage() {
     </section>
   );
 }
-
-
-
-
-
-
-

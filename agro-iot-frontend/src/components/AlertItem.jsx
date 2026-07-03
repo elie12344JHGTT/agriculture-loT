@@ -1,4 +1,4 @@
-import React from "https://esm.sh/react@19.1.1";
+import React from "react";
 import bellIcon from "../assets/icons/bell-solid.png";
 
 export function AlertItem({ alert }) {

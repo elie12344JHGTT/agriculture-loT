@@ -1,4 +1,4 @@
-import React from "https://esm.sh/react@19.1.1";
+import React from "react";
 import thermometerIcon from "../assets/icons/thermometer.png";
 import airConditionerIcon from "../assets/icons/air-conditioner.png";
 import floodIcon from "../assets/icons/flood.png";

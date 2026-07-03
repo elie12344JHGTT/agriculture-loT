@@ -1,4 +1,4 @@
-import React, { useState } from "https://esm.sh/react@19.1.1";
+import React, { useState } from "react";
 import userIcon from "../assets/icons/user-solid.png";
 import logoutIcon from "../assets/icons/power-off-solid.png";
 

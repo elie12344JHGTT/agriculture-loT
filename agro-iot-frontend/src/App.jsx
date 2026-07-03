@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "https://esm.sh/react@19.1.1";
+import React, { useEffect, useMemo, useState } from "react";
 import { navItems } from "./data/mockData.js";
 import { Sidebar } from "./layout/Sidebar.jsx";
 import { Header } from "./layout/Header.jsx";

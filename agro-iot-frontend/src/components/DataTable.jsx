@@ -1,4 +1,4 @@
-import React from "https://esm.sh/react@19.1.1";
+import React from "react";
 export function DataTable({ rows }) {
   return (
     <div className="table-wrap">
@@ -27,4 +27,3 @@ export function DataTable({ rows }) {
     </div>
   );
 }
-

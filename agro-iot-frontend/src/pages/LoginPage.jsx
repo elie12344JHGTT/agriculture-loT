@@ -1,4 +1,4 @@
-import React, { useState } from "https://esm.sh/react@19.1.1";
+import React, { useState } from "react";
 import api from "../api/axios";
 import logoAvecNom from "../assets/logos/agri_logo-transparante.png";
 import thermometerIcon from "../assets/icons/thermometer.png";
@@ -93,5 +93,3 @@ export function LoginPage({ onLogin }) {
     </main>
   );
 }
-
-

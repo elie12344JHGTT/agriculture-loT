@@ -1,4 +1,4 @@
-import React, { useState } from "https://esm.sh/react@19.1.1";
+import React, { useState } from "react";
 import logoCompact from "../assets/logos/logo_font_transparant.png";
 import menuIcon from "../assets/icons/bars-solid.png";
 import dashboardIcon from "../assets/icons/house-solid.png";
@@ -65,9 +65,3 @@ export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
     </aside>
   );
 }
-
-
-
-
-
-
