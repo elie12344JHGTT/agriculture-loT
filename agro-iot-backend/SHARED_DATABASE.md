@@ -25,7 +25,7 @@ Variables importantes :
 
 ```env
 DB_CONNECTION=mysql
-DB_HOST=mysql-b28b9ca-ulc-bdb3.f.aivencloud.com
+DB_HOST=REMPLACER_PAR_LE_HOST_AIVEN_EXACT
 DB_PORT=14547
 DB_DATABASE=defaultdb
 DB_USERNAME=avnadmin
@@ -41,7 +41,7 @@ Dans Render, mettre les memes valeurs dans les Environment Variables du service 
 
 ```env
 DB_CONNECTION=mysql
-DB_HOST=mysql-b28b9ca-ulc-bdb3.f.aivencloud.com
+DB_HOST=REMPLACER_PAR_LE_HOST_AIVEN_EXACT
 DB_PORT=14547
 DB_DATABASE=defaultdb
 DB_USERNAME=avnadmin
@@ -101,3 +101,4 @@ MYSQL_ATTR_SSL_CA=/chemin/vers/ca.pem
 ```
 
 Le vrai mot de passe Aiven ne doit pas etre commite dans GitHub.
+
