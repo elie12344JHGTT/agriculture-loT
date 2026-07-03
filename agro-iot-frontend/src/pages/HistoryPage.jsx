@@ -103,30 +103,42 @@ export function HistoryPage() {
       setLoadError("");
 
       try {
-        const params = { limit: 500 };
-        if (dateFilter) {
+        const params = { limit: 50 };
+        if (activeTab === "Mesures" && dateFilter) {
           params.date = dateFilter;
         }
 
-        const [measuresResponse, alertsResponse, actionsResponse] = await Promise.all([
-          api.get("/api/history/measurements", { params }),
-          api.get("/api/history/alerts", { params: { limit: 500 } }),
-          api.get("/api/history/actions", { params: { limit: 500 } })
-        ]);
+        const endpointByTab = {
+          Mesures: "/api/history/measurements",
+          Alertes: "/api/history/alerts",
+          Actions: "/api/history/actions"
+        };
+
+        const response = await api.get(endpointByTab[activeTab], { params });
 
         if (!isMounted) {
           return;
         }
 
-        setMeasureHistoryRows(measuresResponse.data?.rows ?? []);
-        setAlertHistoryRows(alertsResponse.data?.rows ?? []);
-        setActionHistoryRows(actionsResponse.data?.rows ?? []);
-        setMeasurePage(1);
-        setAlertPage(1);
-        setActionPage(1);
-        setSelectedMeasures([]);
-        setSelectedAlerts([]);
-        setSelectedActions([]);
+        const rows = response.data?.rows ?? [];
+
+        if (activeTab === "Mesures") {
+          setMeasureHistoryRows(rows);
+          setMeasurePage(1);
+          setSelectedMeasures([]);
+        }
+
+        if (activeTab === "Alertes") {
+          setAlertHistoryRows(rows);
+          setAlertPage(1);
+          setSelectedAlerts([]);
+        }
+
+        if (activeTab === "Actions") {
+          setActionHistoryRows(rows);
+          setActionPage(1);
+          setSelectedActions([]);
+        }
       } catch (error) {
         if (isMounted) {
           setLoadError("Impossible de charger l'historique depuis Laravel");
@@ -143,7 +155,7 @@ export function HistoryPage() {
     return () => {
       isMounted = false;
     };
-  }, [dateFilter]);
+  }, [activeTab, dateFilter]);
 
   const filteredMeasures = useMemo(() => {
     if (filter === "Tous") {
@@ -363,4 +375,5 @@ export function HistoryPage() {
     </section>
   );
 }
+
 

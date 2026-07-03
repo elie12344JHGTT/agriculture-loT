@@ -123,17 +123,21 @@ export function AdminPage() {
       setLoadError("");
 
       try {
-        const [usersResponse, accessResponse] = await Promise.all([
-          api.get("/api/users", { params: { limit: 500 } }),
-          api.get("/api/access-logs", { params: { limit: 500 } })
-        ]);
+        if (activeSection === "Gestion des utilisateurs") {
+          const usersResponse = await api.get("/api/users", { params: { limit: 50 } });
 
-        if (!isMounted) {
-          return;
+          if (isMounted) {
+            setUsers(usersResponse.data?.rows ?? []);
+          }
         }
 
-        setUsers(usersResponse.data?.rows ?? []);
-        setAccessLogs(accessResponse.data?.rows ?? []);
+        if (activeSection === "Etat des acces") {
+          const accessResponse = await api.get("/api/access-logs", { params: { limit: 120 } });
+
+          if (isMounted) {
+            setAccessLogs(accessResponse.data?.rows ?? []);
+          }
+        }
       } catch (error) {
         if (isMounted) {
           setLoadError("Impossible de charger l'administration depuis Laravel");
@@ -150,7 +154,7 @@ export function AdminPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeSection]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -507,6 +511,7 @@ export function AdminPage() {
     </section>
   );
 }
+
 
 
 
