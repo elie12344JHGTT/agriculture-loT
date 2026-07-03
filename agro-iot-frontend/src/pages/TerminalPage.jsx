@@ -147,7 +147,7 @@ export function TerminalPage() {
   }
 
   return (
-    <section className="page-grid terminal-page">
+    <section className="page-grid">
       <div className="terminal-panel">
         <div className="terminal-header">
           <div>
@@ -184,4 +184,5 @@ export function TerminalPage() {
     </section>
   );
 }
+
 
