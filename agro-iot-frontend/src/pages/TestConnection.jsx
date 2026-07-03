@@ -5,7 +5,7 @@ import axios from '../api/axios';
 function TestConnection() {
   useEffect(() => {
     // Test de la connexion
-    axios.get('/test-connection')
+    axios.get('/api/test-connection')
       .then(response => {
         console.log("Réponse du serveur :", response.data.message);
         alert("Succès : " + response.data.message);

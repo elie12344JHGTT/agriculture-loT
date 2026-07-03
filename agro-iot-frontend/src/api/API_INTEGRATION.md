@@ -11,13 +11,13 @@ Le frontend utilise l'instance Axios definie dans :
 agro-iot-frontend/src/api/axios.js
 ```
 
-Base URL actuellement attendue en local :
+Base URL actuellement utilisee par defaut :
 
 ```txt
-http://127.0.0.1:8000
+https://agro-iot-backend.onrender.com
 ```
 
-Les appels frontend utilisent ensuite le prefixe `/api`, par exemple :
+Cette valeur peut etre surchargee avec `VITE_API_URL` dans un fichier `.env`. Les appels frontend utilisent ensuite le prefixe `/api`, par exemple :
 
 ```js
 api.get("/api/measurements/latest")
@@ -447,3 +447,5 @@ ou un tableau vide selon le endpoint :
 ```
 
 Le frontend affichera alors les etats vides prevus : aucune mesure, aucune alerte, aucun utilisateur, aucun acces, etc.
+
+

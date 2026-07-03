@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8000', // Communication avec le backend Laravel
-    withCredentials: true,            // Doit être true car cors.php a supports_credentials: true
-    withXSRFToken: true,              // Nécessaire si vous utilisez Sanctum (cookie CSRF) plus tard
+    baseURL: import.meta.env.VITE_API_URL || 'https://agro-iot-backend.onrender.com',
+    withCredentials: true,
+    withXSRFToken: true,
     headers: {
         'Accept': 'application/json',
     },
