@@ -6,12 +6,14 @@ import historyIcon from "../assets/icons/clock-rotate-left-solid.png";
 import alertsIcon from "../assets/icons/bell-solid.png";
 import adminIcon from "../assets/icons/users-gear-solid.png";
 import logoutIcon from "../assets/icons/power-off-solid.png";
+import terminalIcon from "../assets/icons/terminal-solid.png";
 
 const navIcons = {
   Dashboard: dashboardIcon,
   Historique: historyIcon,
   Alertes: alertsIcon,
-  Administration: adminIcon
+  Administration: adminIcon,
+  Terminal: terminalIcon
 };
 
 export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
@@ -65,3 +67,6 @@ export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
     </aside>
   );
 }
+
+
+

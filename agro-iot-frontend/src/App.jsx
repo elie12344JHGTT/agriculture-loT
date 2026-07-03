@@ -7,13 +7,14 @@ import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { HistoryPage } from "./pages/HistoryPage.jsx";
 import { AlertsPage } from "./pages/AlertsPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
+import { TerminalPage } from "./pages/TerminalPage.jsx";
 import api from "./api/axios";
 import { logAudit, setCurrentAuditUser } from "./api/audit";
 
 const pagesByRole = {
-  Admin: ["Dashboard", "Historique", "Alertes", "Administration"],
+  Admin: ["Dashboard", "Historique", "Alertes", "Administration", "Terminal"],
   Agriculteur: ["Dashboard", "Historique", "Alertes"],
-  Technicien: ["Dashboard", "Historique", "Alertes"]
+  Technicien: ["Dashboard", "Historique", "Alertes", "Terminal"]
 };
 
 const AUTH_STORAGE_KEY = "agro-iot-auth";
@@ -128,9 +129,12 @@ export function App() {
         {activePage === "Historique" && <HistoryPage />}
         {activePage === "Alertes" && <AlertsPage />}
         {currentUser?.role === "Admin" && activePage === "Administration" && <AdminPage />}
+        {activePage === "Terminal" && <TerminalPage />}
       </main>
     </div>
   );
 }
 
 export default App;
+
+

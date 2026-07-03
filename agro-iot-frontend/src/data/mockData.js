@@ -7,4 +7,5 @@ export const sensorCards = [
   { label: "Niveau eau", value: "0", unit: "%", status: "--", tone: "green" }
 ];
 
-export const navItems = ["Dashboard", "Historique", "Alertes", "Administration"];
+export const navItems = ["Dashboard", "Historique", "Alertes", "Administration", "Terminal"];
+
