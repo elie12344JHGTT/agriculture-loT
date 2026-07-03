@@ -5,13 +5,12 @@ WORKDIR /var/www/html
 RUN apk add --no-cache \
     bash \
     git \
-    icu-dev \
     libzip-dev \
     oniguruma-dev \
     unzip \
     zip \
     $PHPIZE_DEPS \
-    && docker-php-ext-install bcmath intl mbstring pdo_mysql zip \
+    && docker-php-ext-install mbstring pdo_mysql zip \
     && apk del $PHPIZE_DEPS
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -32,4 +31,5 @@ CMD php artisan package:discover --ansi \
     && php artisan route:clear \
     && php artisan migrate --force \
     && exec php -S 0.0.0.0:${PORT:-10000} -t public
+
 
