@@ -1,50 +1,74 @@
-# Scripts CLI Agro IoT
+# Scripts batch/CLI Agro IoT
 
-Ce dossier contient le script batch/CLI demande dans le cahier de charge pour executer des actions en masse ou via menu.
+Ce dossier contient le script demande dans le cahier de charge pour executer des actions en masse ou via menu depuis un terminal.
 
-## Script disponible
+## Objectif
 
-`actionneurs-cli.bat`
+Permettre de declencher les actionneurs sans passer par l'interface web :
 
-Il permet d'envoyer des commandes vers le backend Laravel pour :
+- arrosage / irrigation ;
+- ventilation ;
+- luminosite / eclairage ;
+- commandes groupees sur tous les actionneurs.
 
-- irrigation;
-- ventilation;
-- eclairage.
+## Scripts disponibles
+
+```txt
+scripts/actionneurs-cli.bat
+scripts/actionneurs-cli.ps1
+```
+
+Le fichier `.bat` est le lanceur Windows. Il appelle le script PowerShell `.ps1`.
 
 ## Configuration
 
-Par defaut, le script appelle :
+Par defaut, le script appelle le backend en ligne :
 
 ```txt
-http://127.0.0.1:8000/api
+https://agro-iot-backend.onrender.com/api
 ```
 
-Pour utiliser une autre URL Laravel :
+Pour utiliser un backend local :
 
 ```bat
-set AGRO_API_BASE_URL=http://localhost:8000/api
+set AGRO_API_BASE_URL=http://127.0.0.1:8000/api
 ```
 
-Si les routes sont protegees par Sanctum/JWT :
+Si les routes sont protegees plus tard par token :
 
 ```bat
 set AGRO_API_TOKEN=votre_token_api
 ```
 
-## Utilisation avec menu
+## Mode menu
 
 ```bat
 scripts\actionneurs-cli.bat
 ```
 
-## Utilisation directe
+## Mode direct
 
 ```bat
-scripts\actionneurs-cli.bat irrigation start
+scripts\actionneurs-cli.bat arrosage start
 scripts\actionneurs-cli.bat ventilation stop
-scripts\actionneurs-cli.bat light start
-scripts\actionneurs-cli.bat all start batch
+scripts\actionneurs-cli.bat luminosite start
+scripts\actionneurs-cli.bat tout stop batch
+```
+
+Alias acceptes :
+
+```txt
+arrosage, irrigation, pompe
+ventilation, ventilateur
+luminosite, eclairage, light, lampe
+tout, all
+```
+
+Commandes acceptees :
+
+```txt
+start, on, demarrer, activer, allumer
+stop, off, arreter, eteindre
 ```
 
 ## Routes Laravel appelees
@@ -64,10 +88,12 @@ Body envoye :
 }
 ```
 
-Le backend Laravel peut utiliser `source` pour distinguer :
+Valeurs possibles pour `source` :
 
-- `manual` : commande lancee depuis le menu;
-- `cli` : commande lancee directement;
-- `batch` : commande de masse.
+```txt
+manual  commande lancee via menu
+cli     commande directe
+batch   commande groupee
+```
 
-Les routes ne sont pas encore forcees dans ce script : le backend peut les implementer comme indique dans `agro-iot-frontend/src/api/API_INTEGRATION.md`.
+Le script affiche la reponse JSON du backend et renvoie un code d'erreur non nul si l'appel API echoue.
