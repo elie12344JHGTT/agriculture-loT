@@ -26,9 +26,7 @@ export function LoginPage({ onLogin }) {
       const response = await api.post("/api/auth/login", { email, password });
       onLogin(response.data.user);
     } catch (error) {
-      const status = error.response?.status;
-      const message = error.response?.data?.message;
-      setLoginError(status >= 500 || message === "Server Error" ? "Serveur indisponible. Verifiez la configuration du backend." : message || "Impossible de se connecter");
+      setLoginError(error.response?.data?.message || "Impossible de se connecter");
     } finally {
       setIsSubmitting(false);
     }
@@ -95,4 +93,3 @@ export function LoginPage({ onLogin }) {
     </main>
   );
 }
-
