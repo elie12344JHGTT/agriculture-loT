@@ -31,4 +31,5 @@ CMD php artisan package:discover --ansi \
     && php artisan config:clear \
     && php artisan route:clear \
     && php artisan migrate --force \
-    && exec php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
+    && exec php -S 0.0.0.0:${PORT:-10000} -t public
+

@@ -98,10 +98,10 @@ php artisan package:discover --ansi
 php artisan config:clear
 php artisan route:clear
 php artisan migrate --force
-php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
+php -S 0.0.0.0:${PORT:-10000} -t public
 ```
 
-Au demarrage, Render applique donc automatiquement les migrations.
+Au demarrage, Render applique donc automatiquement les migrations, puis lance le serveur PHP natif sur le port fourni par Render.
 
 ## 5. Verification apres deploiement
 
@@ -137,3 +137,4 @@ Si le frontend change de domaine, mettre a jour cette variable dans Render.
 - `SESSION_DRIVER=file`, `CACHE_STORE=file` et `QUEUE_CONNECTION=sync` sont suffisants pour le premier deploiement.
 - Le service Render gratuit peut dormir apres inactivite, donc la premiere requete peut etre lente.
 - Si vous voulez utiliser PostgreSQL Render plus tard, il faudra adapter `DB_CONNECTION=pgsql` et verifier les migrations.
+
