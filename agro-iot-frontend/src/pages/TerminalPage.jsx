@@ -38,9 +38,7 @@ const helpLines = [
   "  help"
 ];
 
-const starterLogs = [
-  { type: "system", text: "Terminal Agro IoT pret. Tapez help pour afficher les commandes." }
-];
+const starterLogs = [];
 
 function normalize(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
@@ -149,14 +147,6 @@ export function TerminalPage() {
   return (
     <section className="page-grid terminal-page">
       <div className="terminal-panel">
-        <div className="terminal-header">
-          <div>
-            <h2>Terminal actionneurs</h2>
-            <p>Execution controlee des commandes arrosage, ventilation et luminosite.</p>
-          </div>
-          <span>{isRunning ? "Execution" : "Pret"}</span>
-        </div>
-
         <form className="terminal-window" onClick={focusTerminalInput} onSubmit={submit}>
           <div className="terminal-log" aria-live="polite">
             {logs.map((log, index) => (
