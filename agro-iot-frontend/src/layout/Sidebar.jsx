@@ -53,7 +53,7 @@ export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
       <div className="sidebar-menu" id="sidebar-menu">
         <nav>
           {navItems.map((item) => (
-            <button key={item} className={activePage === item ? "active" : ""} onClick={() => selectPage(item)}>
+            <button key={item} data-page={item} className={activePage === item ? "active" : ""} onClick={() => selectPage(item)}>
               <img className="nav-icon" src={navIcons[item]} alt="" />
               <span>{item}</span>
             </button>
@@ -67,6 +67,3 @@ export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
     </aside>
   );
 }
-
-
-

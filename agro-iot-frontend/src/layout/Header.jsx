@@ -1,14 +1,21 @@
 import React, { useState } from "react";
 import userIcon from "../assets/icons/user-solid.png";
 import logoutIcon from "../assets/icons/power-off-solid.png";
+import terminalIcon from "../assets/icons/terminal-solid.png";
 
-export function Header({ activePage, currentUser, onLogout }) {
+export function Header({ activePage, currentUser, navItems, setActivePage, onLogout }) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountLabel = currentUser?.role || currentUser?.name || "Utilisateur";
+  const hasTerminalAccess = navItems.includes("Terminal");
 
   function logout() {
     setIsAccountOpen(false);
     onLogout();
+  }
+
+  function openTerminal() {
+    setIsAccountOpen(false);
+    setActivePage("Terminal");
   }
 
   return (
@@ -27,6 +34,12 @@ export function Header({ activePage, currentUser, onLogout }) {
         </button>
         {isAccountOpen && (
           <div className="profile-dropdown">
+            {hasTerminalAccess && activePage !== "Terminal" && (
+              <button type="button" onClick={openTerminal}>
+                <img className="profile-dropdown-icon" src={terminalIcon} alt="" />
+                <span>Terminal</span>
+              </button>
+            )}
             <button type="button" onClick={logout}>
               <img className="profile-dropdown-icon" src={logoutIcon} alt="" />
               <span>Deconnexion</span>

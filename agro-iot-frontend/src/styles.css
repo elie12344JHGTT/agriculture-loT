@@ -2853,4 +2853,14 @@ select {
     font-size: 0.84rem;
   }
 }
+/* mobile-terminal-in-profile-menu */
+@media (max-width: 760px) {
+  .sidebar nav button[data-page="Terminal"] {
+    display: none;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 

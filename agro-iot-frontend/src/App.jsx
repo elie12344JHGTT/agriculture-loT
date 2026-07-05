@@ -124,7 +124,7 @@ export function App() {
         onLogout={logout}
       />
       <main className="main-panel">
-        <Header activePage={activePage} currentUser={currentUser} onLogout={logout} />
+        <Header activePage={activePage} currentUser={currentUser} navItems={allowedNavItems} setActivePage={setActivePage} onLogout={logout} />
         {activePage === "Dashboard" && <DashboardPage />}
         {activePage === "Historique" && <HistoryPage />}
         {activePage === "Alertes" && <AlertsPage />}
@@ -136,5 +136,4 @@ export function App() {
 }
 
 export default App;
-
 
