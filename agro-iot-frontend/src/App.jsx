@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { navItems } from "./data/mockData.js";
 import { Sidebar } from "./layout/Sidebar.jsx";
 import { Header } from "./layout/Header.jsx";
+import { SplashScreen } from "./components/SplashScreen.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { HistoryPage } from "./pages/HistoryPage.jsx";
@@ -40,6 +41,15 @@ export function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(storedAuth?.user));
   const [currentUser, setCurrentUser] = useState(storedAuth?.user || null);
   const [activePage, setActivePage] = useState(storedAuth?.activePage || "Dashboard");
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsSplashVisible(false);
+    }, 1800);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const allowedNavItems = useMemo(() => {
     const allowedPages = getPagesForRole(currentUser?.role);
@@ -111,6 +121,10 @@ export function App() {
     }
   }, [activePage, isLoggedIn]);
 
+  if (isSplashVisible) {
+    return <SplashScreen />;
+  }
+
   if (!isLoggedIn) {
     return <LoginPage onLogin={login} />;
   }
@@ -136,4 +150,6 @@ export function App() {
 }
 
 export default App;
+
+
 

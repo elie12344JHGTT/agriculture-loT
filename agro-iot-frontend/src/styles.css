@@ -36,6 +36,68 @@ select {
 button {
   cursor: pointer;
 }
+.splash-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #f7faf7 0%, #e8f2ec 54%, #d7eadc 100%);
+}
+
+.splash-logo-wrap {
+  display: grid;
+  place-items: center;
+  width: min(240px, 54vw);
+  aspect-ratio: 1;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 24px 70px rgba(25, 62, 40, 0.16);
+  animation: splash-card 1600ms ease both;
+}
+
+.splash-logo {
+  width: 72%;
+  height: auto;
+  object-fit: contain;
+  animation: splash-logo 1600ms ease both;
+}
+
+@keyframes splash-card {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  28%, 76% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes splash-logo {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  30%, 78% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-logo-wrap,
+  .splash-logo {
+    animation-duration: 1ms;
+  }
+}
 
 .login-screen {
   min-height: 100vh;
