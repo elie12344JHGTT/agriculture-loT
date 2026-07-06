@@ -38,9 +38,10 @@ function readStoredAuth() {
 const storedAuth = readStoredAuth();
 
 export function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(storedAuth?.user));
-  const [currentUser, setCurrentUser] = useState(storedAuth?.user || null);
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(storedAuth?.user && storedAuth?.token));
+  const [currentUser, setCurrentUser] = useState(storedAuth?.token ? storedAuth?.user : null);
   const [activePage, setActivePage] = useState(storedAuth?.activePage || "Dashboard");
+  const [authToken, setAuthToken] = useState(storedAuth?.token || "");
   const [isSplashVisible, setIsSplashVisible] = useState(true);
 
   useEffect(() => {
@@ -56,26 +57,44 @@ export function App() {
     return navItems.filter((item) => allowedPages.includes(item));
   }, [currentUser?.role]);
 
-  // Test temporaire ajoute pour verifier la communication avec Laravel.
-  useEffect(() => {
-    api.get("/api/test-connection")
-      .then((response) => {
-        console.log("Connexion au backend reussie :", response.data);
-      })
-      .catch((error) => {
-        console.error("Erreur de connexion au backend :", error);
-      });
-  }, []);
 
   useEffect(() => {
     setCurrentAuditUser(currentUser);
 
     if (currentUser) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: currentUser, activePage }));
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: currentUser, activePage, token: authToken }));
     } else {
       localStorage.removeItem(AUTH_STORAGE_KEY);
     }
-  }, [activePage, currentUser]);
+  }, [activePage, authToken, currentUser]);
+  useEffect(() => {
+    if (!authToken) {
+      return;
+    }
+
+    let isMounted = true;
+
+    api.get("/api/auth/me")
+      .then((response) => {
+        if (!isMounted) return;
+        setCurrentAuditUser(response.data.user);
+        setCurrentUser(response.data.user);
+        setIsLoggedIn(true);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setCurrentAuditUser(null);
+        setCurrentUser(null);
+        setAuthToken("");
+        setIsLoggedIn(false);
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authToken]);
+
 
   useEffect(() => {
     if (isLoggedIn && !allowedNavItems.includes(activePage)) {
@@ -83,10 +102,11 @@ export function App() {
     }
   }, [activePage, allowedNavItems, isLoggedIn]);
 
-  function login(user) {
+  function login(user, token) {
     const userPages = getPagesForRole(user?.role);
     setCurrentAuditUser(user);
     setCurrentUser(user);
+    setAuthToken(token || "");
     setActivePage(userPages[0]);
     setIsLoggedIn(true);
   }
@@ -105,6 +125,7 @@ export function App() {
     } finally {
       setCurrentAuditUser(null);
       setCurrentUser(null);
+      setAuthToken("");
       setActivePage("Dashboard");
       setIsLoggedIn(false);
       localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -150,6 +171,4 @@ export function App() {
 }
 
 export default App;
-
-
 

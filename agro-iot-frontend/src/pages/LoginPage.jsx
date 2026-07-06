@@ -24,7 +24,7 @@ export function LoginPage({ onLogin }) {
 
     try {
       const response = await api.post("/api/auth/login", { email, password });
-      onLogin(response.data.user);
+      onLogin(response.data.user, response.data.token);
     } catch (error) {
       setLoginError(error.response?.data?.message || "Impossible de se connecter");
     } finally {
@@ -93,3 +93,4 @@ export function LoginPage({ onLogin }) {
     </main>
   );
 }
+

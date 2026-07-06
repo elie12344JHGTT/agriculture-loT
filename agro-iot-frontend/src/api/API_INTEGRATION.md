@@ -447,5 +447,25 @@ ou un tableau vide selon le endpoint :
 ```
 
 Le frontend affichera alors les etats vides prevus : aucune mesure, aucune alerte, aucun utilisateur, aucun acces, etc.
+## Authentification securisee ajoutee
 
+Le backend renvoie maintenant un `token` signe lors de `POST /api/auth/login`.
+Le frontend conserve ce token dans `localStorage` avec l'utilisateur connecte et l'envoie automatiquement dans chaque requete protegee :
+
+```http
+Authorization: Bearer <token>
+```
+
+Routes publiques :
+- `POST /api/auth/login` avec limitation de tentatives via `throttle:5,1`.
+
+Routes protegees par token :
+- toutes les autres routes API apres la connexion ;
+- `GET /api/auth/me` permet au frontend de recharger le vrai utilisateur depuis le backend au lieu de faire confiance au role stocke localement.
+
+Routes protegees par role cote Laravel :
+- Admin uniquement : gestion des utilisateurs et journal d'audit ;
+- Admin ou Technicien : commandes actionneurs, modification des seuils, resolution des alertes.
+
+Important : le frontend peut encore masquer ou afficher des menus pour l'ergonomie, mais la vraie autorisation est maintenant verifiee par Laravel.
 

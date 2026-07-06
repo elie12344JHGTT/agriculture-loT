@@ -10,6 +10,7 @@ use App\Models\Mesure;
 use App\Models\Notification_systeme as NotificationSysteme;
 use App\Models\Seuil;
 use App\Models\Script;
+use App\Support\AgroApiToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,21 @@ if (! function_exists('agro_audit_log')) {
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+}
+if (! function_exists('agro_require_role')) {
+    function agro_require_role(Request $request, array $roles)
+    {
+        $user = $request->attributes->get('agro_user') ?? $request->user();
+        $role = $user?->profil?->role;
+
+        if (! $user || ! in_array($role, $roles, true)) {
+            return response()->json([
+                'message' => 'Acces refuse pour ce role',
+            ], 403);
+        }
+
+        return null;
     }
 }
 
@@ -98,6 +114,7 @@ Route::post('/auth/login', function (Request $request) {
     ]);
 
     return response()->json([
+        'token' => AgroApiToken::issue($user, $auditSessionId),
         'user' => [
             'id' => $user->id,
             'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
@@ -109,15 +126,34 @@ Route::post('/auth/login', function (Request $request) {
             'audit_session_id' => $auditSessionId,
         ],
     ]);
-});
+})->middleware('throttle:5,1');
 
+Route::middleware('agro.auth')->group(function () {
+Route::get('/auth/me', function (Request $request) {
+    $user = $request->attributes->get('agro_user');
+
+    return response()->json([
+        'user' => [
+            'id' => $user->id,
+            'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
+            'name' => $user->name,
+            'nom' => $user->name,
+            'email' => $user->email,
+            'role' => $user->profil?->role ?? 'Agriculteur',
+            'status' => 'Actif',
+            'audit_session_id' => $user->audit_session_id,
+        ],
+    ]);
+});
 Route::post('/auth/logout', function (Request $request) {
+    $user = $request->attributes->get('agro_user');
+
     agro_audit_log([
         'session_id' => $request->input('session_id'),
-        'user_id' => $request->input('user_id'),
-        'user_name' => $request->input('user_name'),
-        'user_email' => $request->input('user_email'),
-        'user_role' => $request->input('user_role'),
+        'user_id' => $user?->id,
+        'user_name' => $user?->name,
+        'user_email' => $user?->email,
+        'user_role' => $user?->profil?->role,
         'page' => 'Login',
         'action' => 'Deconnexion',
         'details' => 'Utilisateur deconnecte du logiciel',
@@ -132,19 +168,24 @@ Route::post('/auth/logout', function (Request $request) {
 
 Route::post('/audit-logs', function (Request $request) {
     $data = $request->validate([
-        'session_id' => ['nullable', 'string', 'max:255'],
-        'user_id' => ['nullable'],
-        'user_name' => ['nullable', 'string', 'max:255'],
-        'user_email' => ['nullable', 'string', 'max:255'],
-        'user_role' => ['nullable', 'string', 'max:255'],
         'page' => ['nullable', 'string', 'max:255'],
         'action' => ['required', 'string', 'max:255'],
         'details' => ['nullable', 'string'],
         'status' => ['nullable', 'string', 'max:255'],
     ]);
 
+    $user = $request->attributes->get('agro_user');
+
     $id = agro_audit_log([
-        ...$data,
+        'session_id' => $request->input('session_id'),
+        'user_id' => $user?->id,
+        'user_name' => $user?->name,
+        'user_email' => $user?->email,
+        'user_role' => $user?->profil?->role,
+        'page' => $data['page'] ?? null,
+        'action' => $data['action'],
+        'details' => $data['details'] ?? null,
+        'status' => $data['status'] ?? 'success',
         'ip_address' => $request->ip(),
     ]);
 
@@ -246,7 +287,10 @@ Route::get('/alerts/active', function (Request $request) {
     );
 });
 
-Route::put('/alerts/{alert}/resolve', function (Alerte $alert) {
+Route::put('/alerts/{alert}/resolve', function (Request $request, Alerte $alert) {
+    if ($response = agro_require_role($request, ['Admin', 'Technicien'])) {
+        return $response;
+    }
     $alert->update(['statut' => true]);
 
     return response()->json([
@@ -276,6 +320,9 @@ Route::get('/thresholds', function () {
 });
 
 Route::put('/thresholds', function (Request $request) {
+    if ($response = agro_require_role($request, ['Admin', 'Technicien'])) {
+        return $response;
+    }
     $rows = collect($request->json()->all());
 
     $updatedRows = $rows->map(function ($row) {
@@ -449,6 +496,9 @@ Route::get('/history/actions', function (Request $request) {
 });
 
 Route::get('/users', function (Request $request) {
+    if ($response = agro_require_role($request, ['Admin'])) {
+        return $response;
+    }
     $limit = min((int) $request->query('limit', 200), 500);
     $search = strtolower((string) $request->query('search', ''));
 
@@ -481,6 +531,9 @@ Route::get('/users', function (Request $request) {
 });
 
 Route::post('/users', function (Request $request) {
+    if ($response = agro_require_role($request, ['Admin'])) {
+        return $response;
+    }
     $data = $request->validate([
         'nom' => ['required', 'string', 'max:255'],
         'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -520,6 +573,9 @@ Route::post('/users', function (Request $request) {
 });
 
 Route::put('/users/{user}', function (Request $request, User $user) {
+    if ($response = agro_require_role($request, ['Admin'])) {
+        return $response;
+    }
     $data = $request->validate([
         'nom' => ['required', 'string', 'max:255'],
         'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
@@ -565,7 +621,10 @@ Route::put('/users/{user}', function (Request $request, User $user) {
     ]);
 });
 
-Route::delete('/users/{user}', function (User $user) {
+Route::delete('/users/{user}', function (Request $request, User $user) {
+    if ($response = agro_require_role($request, ['Admin'])) {
+        return $response;
+    }
     $user->delete();
 
     return response()->json([
@@ -574,6 +633,9 @@ Route::delete('/users/{user}', function (User $user) {
 });
 
 Route::get('/access-logs', function (Request $request) {
+    if ($response = agro_require_role($request, ['Admin'])) {
+        return $response;
+    }
     $limit = min((int) $request->query('limit', 200), 500);
     $search = strtolower((string) $request->query('search', ''));
 
@@ -616,6 +678,9 @@ Route::get('/access-logs', function (Request $request) {
     ]);
 });
 Route::post('/actuators/{actuator}', function (Request $request, string $actuator) {
+    if ($response = agro_require_role($request, ['Admin', 'Technicien'])) {
+        return $response;
+    }
     $allowedActuators = [
         'irrigation' => ['pompe', 'irrigation'],
         'ventilation' => ['ventilateur', 'ventilation'],
@@ -671,24 +736,5 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
         'actionneur' => $actionneur->nom,
     ]);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+});
 
