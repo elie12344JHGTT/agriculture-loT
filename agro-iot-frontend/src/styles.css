@@ -2901,27 +2901,37 @@ select {
   }
 }
 
-
-/* admin-crud-table-polish */
+/* app-crud-table-polish */
 .admin-section-content {
   gap: 18px;
 }
 
+.table-wrap,
+.alert-table-wrap,
 .admin-users-table-wrap,
 .audit-summary-table-wrap {
+  width: 100%;
+  overflow-x: auto;
   border: 1px solid #d7ded9;
   border-radius: 6px;
   background: #ffffff;
   box-shadow: none;
 }
 
+.table-wrap table,
+.alert-table-wrap table,
 .admin-users-table-wrap table,
 .audit-summary-table {
+  width: 100%;
   min-width: 940px;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
 
+.table-wrap th,
+.table-wrap td,
+.alert-table-wrap th,
+.alert-table-wrap td,
 .admin-users-table-wrap th,
 .admin-users-table-wrap td,
 .audit-summary-table th,
@@ -2930,9 +2940,15 @@ select {
   border-bottom: 1px solid #d7ded9;
   padding: 12px 10px;
   color: var(--text);
+  text-align: left;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
+.table-wrap th:last-child,
+.table-wrap td:last-child,
+.alert-table-wrap th:last-child,
+.alert-table-wrap td:last-child,
 .admin-users-table-wrap th:last-child,
 .admin-users-table-wrap td:last-child,
 .audit-summary-table th:last-child,
@@ -2940,6 +2956,15 @@ select {
   border-right: 0;
 }
 
+.table-wrap tr:last-child td,
+.alert-table-wrap tr:last-child td,
+.admin-users-table-wrap tr:last-child td,
+.audit-summary-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table-wrap th,
+.alert-table-wrap th,
 .admin-users-table-wrap th,
 .audit-summary-table th {
   background: #fbfcfb;
@@ -2950,16 +2975,22 @@ select {
   text-transform: none;
 }
 
+.table-wrap tbody tr:nth-child(odd),
+.alert-table-wrap tbody tr:nth-child(odd),
 .admin-users-table-wrap tbody tr:nth-child(odd),
 .audit-summary-table tbody tr:nth-child(odd) {
   background: #ffffff;
 }
 
+.table-wrap tbody tr:nth-child(even),
+.alert-table-wrap tbody tr:nth-child(even),
 .admin-users-table-wrap tbody tr:nth-child(even),
 .audit-summary-table tbody tr:nth-child(even) {
   background: #f7f9f8;
 }
 
+.table-wrap tbody tr:hover,
+.alert-table-wrap tbody tr:hover,
 .admin-users-table-wrap tbody tr:hover,
 .audit-summary-table tbody tr:hover {
   background: #eef7f0;
@@ -2967,31 +2998,34 @@ select {
 
 .table-actions {
   display: inline-flex;
-  gap: 4px;
+  gap: 0;
   flex-wrap: nowrap;
 }
 
 .table-actions button,
 .audit-summary-table .toolbar-button {
-  min-height: 28px;
-  border-radius: 4px;
+  min-height: 32px;
+  border: 1px solid #808080;
+  border-radius: 0;
+  background: #f6f6f6;
+  color: #000000;
   padding: 0 8px;
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: 0.95rem;
+  font-weight: 500;
   line-height: 1;
 }
 
-.table-actions button:first-child,
-.audit-summary-table .toolbar-button {
-  border-color: #b9c6bf;
-  background: #ffffff;
-  color: #1d2c25;
+.table-actions button:first-child {
+  border-radius: 3px 0 0 3px;
 }
 
 .table-actions button:last-child {
-  border-color: #dc4c4c;
-  background: #dc4c4c;
-  color: #ffffff;
+  border-left: 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.audit-summary-table .toolbar-button {
+  border-radius: 3px;
 }
 
 .table-actions button:hover,
@@ -3007,11 +3041,17 @@ select {
 }
 
 @media (max-width: 760px) {
+  .table-wrap table,
+  .alert-table-wrap table,
   .admin-users-table-wrap table,
   .audit-summary-table {
     min-width: 760px;
   }
 
+  .table-wrap th,
+  .table-wrap td,
+  .alert-table-wrap th,
+  .alert-table-wrap td,
   .admin-users-table-wrap th,
   .admin-users-table-wrap td,
   .audit-summary-table th,
