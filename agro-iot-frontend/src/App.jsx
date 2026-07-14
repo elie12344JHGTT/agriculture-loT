@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { navItems } from "./data/mockData.js";
 import { Sidebar } from "./layout/Sidebar.jsx";
 import { Header } from "./layout/Header.jsx";
@@ -43,6 +43,7 @@ export function App() {
   const [activePage, setActivePage] = useState(storedAuth?.activePage || "Dashboard");
   const [authToken, setAuthToken] = useState(storedAuth?.token || "");
   const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const isLogoutInProgress = useRef(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -112,13 +113,15 @@ export function App() {
   }
 
   async function logout() {
+    if (isLogoutInProgress.current) {
+      return;
+    }
+
+    isLogoutInProgress.current = true;
+
     try {
       await api.post("/api/auth/logout", {
-        session_id: currentUser?.audit_session_id,
-        user_id: currentUser?.id,
-        user_name: currentUser?.name || currentUser?.nom,
-        user_email: currentUser?.email,
-        user_role: currentUser?.role
+        session_id: currentUser?.audit_session_id
       });
     } catch (error) {
       console.error("Erreur lors de la deconnexion :", error);
@@ -129,6 +132,7 @@ export function App() {
       setActivePage("Dashboard");
       setIsLoggedIn(false);
       localStorage.removeItem(AUTH_STORAGE_KEY);
+      isLogoutInProgress.current = false;
     }
   }
 

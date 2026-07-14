@@ -24,6 +24,44 @@ if (! function_exists('agro_audit_log')) {
             return null;
         }
 
+        $status = $data['status'] ?? 'success';
+        $dedupeSeconds = (int) ($data['dedupe_seconds'] ?? 5);
+
+        if ($dedupeSeconds > 0 && $status !== 'failed') {
+            $sameNullableValue = function ($query, string $column, $value) {
+                if ($value === null || $value === '') {
+                    return $query->whereNull($column);
+                }
+
+                return $query->where($column, $value);
+            };
+
+            $existingId = DB::table('audit_logs')
+                ->where('occurred_at', '>=', now()->subSeconds($dedupeSeconds))
+                ->where(function ($query) use ($sameNullableValue, $data) {
+                    $sameNullableValue($query, 'session_id', $data['session_id'] ?? null);
+                })
+                ->where(function ($query) use ($sameNullableValue, $data) {
+                    $sameNullableValue($query, 'user_id', $data['user_id'] ?? null);
+                })
+                ->where(function ($query) use ($sameNullableValue, $data) {
+                    $sameNullableValue($query, 'user_email', $data['user_email'] ?? null);
+                })
+                ->where(function ($query) use ($sameNullableValue, $data) {
+                    $sameNullableValue($query, 'page', $data['page'] ?? null);
+                })
+                ->where('action', $data['action'] ?? 'Action utilisateur')
+                ->where(function ($query) use ($sameNullableValue, $data) {
+                    $sameNullableValue($query, 'details', $data['details'] ?? null);
+                })
+                ->where('status', $status)
+                ->value('id');
+
+            if ($existingId) {
+                return (int) $existingId;
+            }
+        }
+
         return DB::table('audit_logs')->insertGetId([
             'session_id' => $data['session_id'] ?? null,
             'user_id' => $data['user_id'] ?? null,
@@ -159,6 +197,7 @@ Route::post('/auth/logout', function (Request $request) {
         'details' => 'Utilisateur deconnecte du logiciel',
         'status' => 'success',
         'ip_address' => $request->ip(),
+        'dedupe_seconds' => 60,
     ]);
 
     return response()->json([
