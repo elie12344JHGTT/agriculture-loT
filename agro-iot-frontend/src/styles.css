@@ -2901,3 +2901,121 @@ select {
   }
 }
 
+
+/* admin-crud-table-polish */
+.admin-section-content {
+  gap: 18px;
+}
+
+.admin-users-table-wrap,
+.audit-summary-table-wrap {
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.admin-users-table-wrap table,
+.audit-summary-table {
+  min-width: 940px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.admin-users-table-wrap th,
+.admin-users-table-wrap td,
+.audit-summary-table th,
+.audit-summary-table td {
+  border-right: 1px solid #d7ded9;
+  border-bottom: 1px solid #d7ded9;
+  padding: 12px 10px;
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.admin-users-table-wrap th:last-child,
+.admin-users-table-wrap td:last-child,
+.audit-summary-table th:last-child,
+.audit-summary-table td:last-child {
+  border-right: 0;
+}
+
+.admin-users-table-wrap th,
+.audit-summary-table th {
+  background: #fbfcfb;
+  color: #26352e;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-users-table-wrap tbody tr:nth-child(odd),
+.audit-summary-table tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+.admin-users-table-wrap tbody tr:nth-child(even),
+.audit-summary-table tbody tr:nth-child(even) {
+  background: #f7f9f8;
+}
+
+.admin-users-table-wrap tbody tr:hover,
+.audit-summary-table tbody tr:hover {
+  background: #eef7f0;
+}
+
+.table-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.table-actions button,
+.audit-summary-table .toolbar-button {
+  min-height: 28px;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.table-actions button:first-child,
+.audit-summary-table .toolbar-button {
+  border-color: #b9c6bf;
+  background: #ffffff;
+  color: #1d2c25;
+}
+
+.table-actions button:last-child {
+  border-color: #dc4c4c;
+  background: #dc4c4c;
+  color: #ffffff;
+}
+
+.table-actions button:hover,
+.audit-summary-table .toolbar-button:hover {
+  transform: none;
+  filter: brightness(0.97);
+}
+
+.admin-section-header .primary-button.small {
+  min-height: 42px;
+  border-radius: 5px;
+  padding: 0 16px;
+}
+
+@media (max-width: 760px) {
+  .admin-users-table-wrap table,
+  .audit-summary-table {
+    min-width: 760px;
+  }
+
+  .admin-users-table-wrap th,
+  .admin-users-table-wrap td,
+  .audit-summary-table th,
+  .audit-summary-table td {
+    padding: 10px 8px;
+  }
+}
