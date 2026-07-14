@@ -4,38 +4,61 @@ import { logAudit } from "../api/audit";
 
 const actuatorAliases = {
   arrosage: "irrigation",
+  arro: "irrigation",
+  arrose: "irrigation",
   irrigation: "irrigation",
+  irrig: "irrigation",
   pompe: "irrigation",
+  eau: "irrigation",
   ventilation: "ventilation",
+  vent: "ventilation",
   ventilateur: "ventilation",
+  air: "ventilation",
   luminosite: "light",
+  lum: "light",
+  lumiere: "light",
   eclairage: "light",
+  eclair: "light",
   light: "light",
   lampe: "light",
   tout: "all",
+  tous: "all",
   all: "all"
 };
 
 const commandAliases = {
   start: "start",
   on: "start",
+  go: "start",
+  lancer: "start",
   demarrer: "start",
+  demarre: "start",
   activer: "start",
+  active: "start",
   allumer: "start",
+  allume: "start",
+  ouvrir: "start",
+  marche: "start",
   stop: "stop",
   off: "stop",
+  couper: "stop",
+  coupe: "stop",
   arreter: "stop",
-  eteindre: "stop"
+  arrete: "stop",
+  eteindre: "stop",
+  eteint: "stop",
+  fermer: "stop",
+  arret: "stop"
 };
 
 const helpLines = [
   "Commandes disponibles :",
-  "  arrosage start | arrosage stop",
-  "  ventilation start | ventilation stop",
-  "  luminosite start | luminosite stop",
-  "  tout start batch | tout stop batch",
+  "  arrosage start | arro on | pompe marche",
+  "  ventilation stop | vent off | air arret",
+  "  luminosite start | lum on | lampe eteindre",
+  "  tout start batch | tous stop batch",
   "  clear",
-  "  help"
+  "  help | commande | com"
 ];
 
 const starterLogs = [];
@@ -80,7 +103,7 @@ export function TerminalPage() {
       return;
     }
 
-    if (["help", "--help", "-h"].includes(normalize(input))) {
+    if (["help", "--help", "-h", "commande", "commandes", "com"].includes(normalize(input))) {
       appendLogs([
         { type: "input", text: `$ ${input}` },
         ...helpLines.map((line) => ({ type: "system", text: line }))
@@ -96,7 +119,7 @@ export function TerminalPage() {
     if (!target || !action) {
       appendLogs([
         { type: "input", text: `$ ${input}` },
-        { type: "error", text: "Commande inconnue. Tapez help pour voir les commandes disponibles." }
+        { type: "error", text: "Commande inconnue. Tapez commande, com ou help pour voir les commandes disponibles." }
       ]);
       return;
     }
