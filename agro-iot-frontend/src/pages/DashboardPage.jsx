@@ -178,15 +178,19 @@ export function DashboardPage() {
   }
 
   const visibleAlerts = alerts.length > 0 ? alerts : [apiWaitingAlert];
+  const connectionState = isLoading ? "loading" : latestMeasurements ? "online" : "offline";
+  const connectionLabel = isLoading ? "Connexion aux donnees en cours" : latestMeasurements ? "Donnees connectees" : apiStatus;
 
   return (
     <section className="page-grid">
-      {!latestMeasurements && (
-        <div className="dashboard-live-status waiting">
-          <strong>Dashboard en attente</strong>
-          <span>{apiStatus}</span>
-        </div>
-      )}
+      <div className={`dashboard-connection-status ${connectionState}`} title={connectionLabel} aria-label={connectionLabel}>
+        <span className="wifi-icon" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <i />
+        </span>
+      </div>
       <div className="sensor-grid">
         {cards.map((card) => <SensorCard key={card.label} card={card} />)}
       </div>
@@ -217,3 +221,4 @@ export function DashboardPage() {
     </section>
   );
 }
+

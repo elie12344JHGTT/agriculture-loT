@@ -4,8 +4,8 @@
   --surface-soft: #f7faf7;
   --text: #1f2a24;
   --muted: #66736b;
-  --green: #2e7d32;
-  --green-soft: #dff1e3;
+  --green: #485329;
+  --green-soft: #e8ebdf;
   --blue: #1f6f8b;
   --blue-soft: #deedf3;
   --amber: #a56300;
@@ -41,7 +41,7 @@ button {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: radial-gradient(circle at center, #f7faf7 0%, #e8f2ec 54%, #d7eadc 100%);
+  background: radial-gradient(circle at center, #f7faf7 0%, #ecefe6 54%, #dde3cf 100%);
 }
 
 .splash-logo {
@@ -49,7 +49,7 @@ button {
   max-height: 42vh;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 18px 38px rgba(25, 62, 40, 0.14));
+  filter: drop-shadow(0 18px 38px rgba(72, 83, 41, 0.16));
   animation: splash-logo 1600ms ease both;
 }
 
@@ -78,7 +78,7 @@ button {
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-  background: linear-gradient(135deg, #214f35 0%, #2e7d32 48%, #eaf5ec 48%, #f7faf7 100%);
+  background: linear-gradient(135deg, #30381d 0%, #485329 48%, #f0f3e8 48%, #f7faf7 100%);
 }
 
 .login-visual {
@@ -580,7 +580,7 @@ select {
 }
 
 .sensor-card.green {
-  border-color: #b6dfbd;
+  border-color: #c9d0b8;
   background: var(--green-soft);
 }
 
@@ -1024,7 +1024,7 @@ select {
 
 .refresh-button {
   color: var(--green);
-  border-color: #b6dfbd;
+  border-color: #c9d0b8;
 }
 
 
@@ -1102,7 +1102,7 @@ select {
 @media (min-width: 761px) and (max-width: 1100px) {
   .login-screen {
     grid-template-columns: minmax(0, 1fr) minmax(330px, 0.82fr);
-    background: linear-gradient(135deg, #214f35 0%, #2e7d32 52%, #eaf5ec 52%, #f7faf7 100%);
+    background: linear-gradient(135deg, #30381d 0%, #485329 52%, #f0f3e8 52%, #f7faf7 100%);
   }
 
   .login-visual {
@@ -1543,8 +1543,8 @@ select {
 }
 
 .command-badge.login {
-  background: #e3f4e6;
-  color: #1f7a33;
+  background: #e8ebdf;
+  color: #485329;
 }
 
 .command-badge.logout {
@@ -2516,8 +2516,8 @@ select {
 }
 
 .audit-success-pill {
-  background: #e3f4e6;
-  color: #1f7a33;
+  background: #e8ebdf;
+  color: #485329;
 }
 
 .audit-warning-pill {
@@ -2993,7 +2993,7 @@ select {
 .alert-table-wrap tbody tr:hover,
 .admin-users-table-wrap tbody tr:hover,
 .audit-summary-table tbody tr:hover {
-  background: #eef7f0;
+  background: #f2f4ec;
 }
 
 .table-actions {
@@ -3059,3 +3059,95 @@ select {
     padding: 10px 8px;
   }
 }
+
+
+/* dashboard-connection-wifi-status */
+.dashboard-connection-status {
+  justify-self: end;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgba(31, 42, 36, 0.08);
+}
+
+.wifi-icon {
+  position: relative;
+  display: block;
+  width: 25px;
+  height: 21px;
+}
+
+.wifi-icon span {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  display: block;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-radius: 999px 999px 0 0;
+  transform: translateX(-50%);
+}
+
+.wifi-icon span:nth-child(1) {
+  width: 25px;
+  height: 15px;
+}
+
+.wifi-icon span:nth-child(2) {
+  width: 17px;
+  height: 10px;
+}
+
+.wifi-icon span:nth-child(3) {
+  width: 9px;
+  height: 5px;
+}
+
+.wifi-icon i {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.dashboard-connection-status.online {
+  color: var(--green);
+  background: var(--green-soft);
+  border-color: #c9d0b8;
+}
+
+.dashboard-connection-status.loading {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-color: #f1d09a;
+}
+
+.dashboard-connection-status.loading .wifi-icon {
+  animation: wifi-pulse 900ms ease-in-out infinite alternate;
+}
+
+.dashboard-connection-status.offline {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: #efbab5;
+}
+
+@keyframes wifi-pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
