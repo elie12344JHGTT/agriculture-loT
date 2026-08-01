@@ -440,6 +440,7 @@ select {
 }
 
 .main-panel {
+  position: relative;
   min-width: 0;
   padding: 18px 28px 28px;
 }
@@ -3063,6 +3064,10 @@ select {
 
 /* dashboard-connection-wifi-status */
 .dashboard-connection-status {
+  position: absolute;
+  top: 18px;
+  right: 168px;
+  z-index: 8;
   justify-self: end;
   display: inline-grid;
   place-items: center;
@@ -3149,5 +3154,85 @@ select {
   to {
     opacity: 1;
   }
+}
+@media (max-width: 760px) {
+  .dashboard-connection-status {
+    top: 20px;
+    right: 126px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .wifi-icon {
+    width: 22px;
+    height: 19px;
+  }
+
+  .wifi-icon span:nth-child(1) {
+    width: 22px;
+    height: 13px;
+  }
+
+  .wifi-icon span:nth-child(2) {
+    width: 15px;
+    height: 9px;
+  }
+
+  .wifi-icon span:nth-child(3) {
+    width: 8px;
+    height: 5px;
+  }
+}
+/* app-square-corners-overrides */
+:where(
+  .panel,
+  .wide-panel,
+  .sensor-card,
+  .action-button,
+  .rule-row,
+  .alert-item,
+  .user-card,
+  .profile-chip,
+  .profile-dropdown,
+  .profile-dropdown button,
+  .sidebar-logo,
+  .sidebar nav button,
+  .logout-button,
+  .menu-toggle,
+  .primary-button,
+  .toolbar-button,
+  .history-tabs button,
+  .chart-tabs button,
+  .admin-tabs button,
+  .admin-search-group input,
+  .admin-search-group button,
+  .table-wrap,
+  .alert-table-wrap,
+  .admin-users-table-wrap,
+  .audit-summary-table-wrap,
+  .users-pagination button,
+  .modal-backdrop,
+  .user-modal,
+  .modal-close,
+  .form-grid input,
+  .form-grid select,
+  .alerts-empty-state,
+  .account-help,
+  .terminal-panel,
+  .terminal-window,
+  .terminal-input-line input,
+  .dashboard-connection-status,
+  .command-badge,
+  .audit-success-pill,
+  .audit-warning-pill,
+  .audit-detail-summary span,
+  .audit-detail-row,
+  .audit-timeline-item,
+  .audit-timeline-body,
+  input,
+  select,
+  button
+) {
+  border-radius: 0 !important;
 }
 
