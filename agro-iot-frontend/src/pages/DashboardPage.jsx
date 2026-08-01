@@ -72,6 +72,19 @@ function normalizeAlerts(data) {
   }));
 }
 
+function getLatestMeasurementDate(data) {
+  const rows = Array.isArray(data) ? data : data?.rows || data?.data || [];
+  const candidates = Array.isArray(data)
+    ? rows
+    : [...rows, data].filter(Boolean);
+
+  const dateValue = candidates
+    .map((item) => item?.date_mesure || item?.created_at || item?.updated_at || item?.date || item?.time || item?.timestamp)
+    .find(Boolean);
+
+  return formatDate(dateValue);
+}
+
 function normalizeChart(data) {
   const rows = Array.isArray(data) ? data : data?.rows || data?.data || [];
 
@@ -93,6 +106,7 @@ export function DashboardPage() {
   const [actionStatus, setActionStatus] = useState(initialActionStatus);
   const [isLoading, setIsLoading] = useState(true);
   const [apiStatus, setApiStatus] = useState("Connexion aux donnees Laravel...");
+  const [lastUpdate, setLastUpdate] = useState("--");
 
   useEffect(() => {
     let isMounted = true;
@@ -111,8 +125,10 @@ export function DashboardPage() {
 
       if (measurementsResult.status === "fulfilled") {
         setLatestMeasurements(measurementsResult.value.data);
+        setLastUpdate(getLatestMeasurementDate(measurementsResult.value.data));
       } else {
         setLatestMeasurements(null);
+        setLastUpdate("--");
       }
 
       if (alertsResult.status === "fulfilled") {
@@ -191,6 +207,10 @@ export function DashboardPage() {
           <i />
         </span>
       </div>
+      <div className="dashboard-mini-meta">
+        <span>Derniere mise a jour</span>
+        <strong>{lastUpdate}</strong>
+      </div>
       <div className="sensor-grid">
         {cards.map((card) => <SensorCard key={card.label} card={card} />)}
       </div>
@@ -221,4 +241,6 @@ export function DashboardPage() {
     </section>
   );
 }
+
+
 

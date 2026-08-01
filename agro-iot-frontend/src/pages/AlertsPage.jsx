@@ -12,6 +12,14 @@ function getAlertId(alert) {
   return String(alert.id_alerte ?? "").replace("ALT-", "");
 }
 
+function alertBadgeClass(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized.includes("crit") || normalized.includes("urgent") || normalized.includes("danger")) return "danger";
+  if (normalized.includes("moy") || normalized.includes("warning") || normalized.includes("attention")) return "warning";
+  if (normalized.includes("resolu") || normalized.includes("ok") || normalized.includes("actif")) return "ok";
+  return "neutral";
+}
+
 export function AlertsPage() {
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [thresholds, setThresholds] = useState([]);
@@ -145,8 +153,8 @@ export function AlertsPage() {
                     <td>{alert.date_creation || alert.date}</td>
                     <td>{alert.parcelle}</td>
                     <td>{alert.type_alerte}</td>
-                    <td>{alert.niveau || alert.niveau_criticite}</td>
-                    <td>{alert.statut}</td>
+                    <td><span className={`status-badge ${alertBadgeClass(alert.niveau || alert.niveau_criticite)}`}>{alert.niveau || alert.niveau_criticite}</span></td>
+                    <td><span className={`status-badge ${alertBadgeClass(alert.statut)}`}>{alert.statut}</span></td>
                     <td>
                       <button className="toolbar-button" type="button" onClick={() => resolveAlert(alert)}>
                         Traiter
@@ -239,3 +247,4 @@ export function AlertsPage() {
     </section>
   );
 }
+

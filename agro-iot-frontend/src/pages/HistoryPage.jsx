@@ -12,6 +12,13 @@ function normalizeText(value) {
     .toLowerCase();
 }
 
+function tableBadgeClass(value) {
+  const normalized = normalizeText(value);
+  if (normalized.includes("crit") || normalized.includes("failed") || normalized.includes("echec") || normalized.includes("erreur")) return "danger";
+  if (normalized.includes("moy") || normalized.includes("warning") || normalized.includes("attention") || normalized.includes("attente")) return "warning";
+  if (normalized.includes("success") || normalized.includes("ok") || normalized.includes("actif") || normalized.includes("resolu")) return "ok";
+  return "neutral";
+}
 // Export local des lignes selectionnees; peut etre remplace par GET /exports/history.
 function exportRowsAsCsv(filename, headers, rows) {
   const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
@@ -274,7 +281,7 @@ export function HistoryPage() {
                     <td>{row.date_mesure}</td>
                     <td>{row.parcelle}</td>
                     <td>{row.capteur}</td>
-                    <td>{row.type_mesure}</td>
+                    <td><span className="status-badge neutral">{row.type_mesure}</span></td>
                     <td>{row.valeur}</td>
                     <td>{row.unite}</td>
                   </tr>
@@ -318,8 +325,8 @@ export function HistoryPage() {
                     <td>{row.parcelle}</td>
                     <td>{row.type_alerte}</td>
                     <td>{row.message}</td>
-                    <td>{row.niveau}</td>
-                    <td>{row.statut}</td>
+                    <td><span className={`status-badge ${tableBadgeClass(row.niveau)}`}>{row.niveau}</span></td>
+                    <td><span className={`status-badge ${tableBadgeClass(row.statut)}`}>{row.statut}</span></td>
                     <td>{row.regle}</td>
                   </tr>
                 ))}
@@ -360,8 +367,8 @@ export function HistoryPage() {
                     <td>{row.date_action}</td>
                     <td>{row.actionneur}</td>
                     <td>{row.type_action}</td>
-                    <td>{row.source}</td>
-                    <td>{row.statut}</td>
+                    <td><span className="status-badge neutral">{row.source}</span></td>
+                    <td><span className={`status-badge ${tableBadgeClass(row.statut)}`}>{row.statut}</span></td>
                     <td>{row.utilisateur}</td>
                   </tr>
                 ))}
@@ -375,3 +382,4 @@ export function HistoryPage() {
     </section>
   );
 }
+

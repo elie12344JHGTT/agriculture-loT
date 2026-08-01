@@ -98,6 +98,15 @@ function getPageMeta(rows, page) {
 
   return { pageCount, safePage, startIndex, endIndex, paginatedRows };
 }
+function badgeClass(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized.includes("admin")) return "admin";
+  if (normalized.includes("technicien")) return "tech";
+  if (normalized.includes("inactif") || normalized.includes("failed") || normalized.includes("echec")) return "danger";
+  if (normalized.includes("actif") || normalized.includes("ok") || normalized.includes("success")) return "ok";
+  if (normalized.includes("invite") || normalized.includes("attente")) return "warning";
+  return "neutral";
+}
 
 export function AdminPage() {
   const [activeSection, setActiveSection] = useState(adminSections[0]);
@@ -299,8 +308,8 @@ export function AdminPage() {
                   <tr key={user.id_user}>
                     <td>{user.nom}</td>
                     <td>{user.email}</td>
-                    <td>{user.role}</td>
-                    <td>{user.status}</td>
+                    <td><span className={`status-badge ${badgeClass(user.role)}`}>{user.role}</span></td>
+                    <td><span className={`status-badge ${badgeClass(user.status)}`}>{user.status}</span></td>
                     <td>
                       <div className="table-actions">
                         <button type="button" onClick={() => openViewUserModal(user)}>Voir</button>
@@ -371,16 +380,16 @@ export function AdminPage() {
                 {accessMeta.paginatedRows.map((session) => (
                   <tr key={session.id}>
                     <td><strong>{session.utilisateur}</strong></td>
-                    <td>{session.role}</td>
+                    <td><span className={`status-badge ${badgeClass(session.role)}`}>{session.role}</span></td>
                     <td>{session.day}</td>
                     <td>{session.lastActivity}</td>
                     <td>{session.sessionCount}</td>
                     <td>{session.actions.length}</td>
                     <td>
                       {session.failedCount > 0 ? (
-                        <span className="audit-warning-pill">{session.failedCount} echec(s)</span>
+                        <span className="status-badge danger">{session.failedCount} echec(s)</span>
                       ) : (
-                        <span className="audit-success-pill">OK</span>
+                        <span className="status-badge ok">OK</span>
                       )}
                     </td>
                     <td>
@@ -511,3 +520,5 @@ export function AdminPage() {
     </section>
   );
 }
+
+
