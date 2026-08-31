@@ -10,6 +10,7 @@ use App\Models\Mesure;
 use App\Models\Notification_systeme as NotificationSysteme;
 use App\Models\Seuil;
 use App\Models\Script;
+use App\Services\MqttService;
 use App\Support\AgroApiToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -83,7 +84,7 @@ if (! function_exists('agro_require_role')) {
     function agro_require_role(Request $request, array $roles)
     {
         $user = $request->attributes->get('agro_user') ?? $request->user();
-        $role = $user?->profil?->role;
+        $role = agro_normalize_role($user?->profil?->role ?? null);
 
         if (! $user || ! in_array($role, $roles, true)) {
             return response()->json([
@@ -92,6 +93,27 @@ if (! function_exists('agro_require_role')) {
         }
 
         return null;
+    }
+}
+
+if (! function_exists('agro_normalize_role')) {
+    function agro_normalize_role(?string $role): string
+    {
+        $normalized = strtolower((string) $role);
+
+        if (str_contains($normalized, 'admin')) {
+            return 'Admin';
+        }
+
+        if (str_contains($normalized, 'technicien') || str_contains($normalized, 'technician') || str_contains($normalized, 'tech')) {
+            return 'Technicien';
+        }
+
+        if (str_contains($normalized, 'agricul') || str_contains($normalized, 'agri')) {
+            return 'Agriculteur';
+        }
+
+        return 'Agriculteur';
     }
 }
 
@@ -159,7 +181,7 @@ Route::post('/auth/login', function (Request $request) {
             'name' => $user->name,
             'nom' => $user->name,
             'email' => $user->email,
-            'role' => $user->profil?->role ?? 'Agriculteur',
+            'role' => agro_normalize_role($user->profil?->role ?? 'Agriculteur'),
             'status' => 'Actif',
             'audit_session_id' => $auditSessionId,
         ],
@@ -177,7 +199,7 @@ Route::get('/auth/me', function (Request $request) {
             'name' => $user->name,
             'nom' => $user->name,
             'email' => $user->email,
-            'role' => $user->profil?->role ?? 'Agriculteur',
+            'role' => agro_normalize_role($user->profil?->role ?? 'Agriculteur'),
             'status' => 'Actif',
             'audit_session_id' => $user->audit_session_id,
         ],
@@ -558,7 +580,7 @@ Route::get('/users', function (Request $request) {
         'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
         'nom' => $user->name,
         'email' => $user->email,
-        'role' => $user->profil?->role ?? 'Agriculteur',
+        'role' => agro_normalize_role($user->profil?->role ?? 'Agriculteur'),
         'status' => $user->email_verified_at ? 'Actif' : 'Invite',
         'password' => '',
     ])->values();
@@ -605,7 +627,7 @@ Route::post('/users', function (Request $request) {
         'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
         'nom' => $user->name,
         'email' => $user->email,
-        'role' => $user->profil?->role ?? $data['role'],
+        'role' => agro_normalize_role($user->profil?->role ?? $data['role']),
         'status' => $user->email_verified_at ? 'Actif' : 'Invite',
         'password' => '',
     ], 201);
@@ -654,7 +676,7 @@ Route::put('/users/{user}', function (Request $request, User $user) {
         'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
         'nom' => $user->name,
         'email' => $user->email,
-        'role' => $user->profil?->role ?? $data['role'],
+        'role' => agro_normalize_role($user->profil?->role ?? $data['role']),
         'status' => $user->email_verified_at ? 'Actif' : 'Invite',
         'password' => '',
     ]);
@@ -723,7 +745,7 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
     $allowedActuators = [
         'irrigation' => ['pompe', 'irrigation'],
         'ventilation' => ['ventilateur', 'ventilation'],
-        'light' => ['lampe', 'light', 'eclairage'],
+        'light' => ['lampe', 'light', 'eclairage', 'relais', 'relai'],
     ];
 
     if (! array_key_exists($actuator, $allowedActuators)) {
@@ -768,12 +790,72 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
         'statut' => $command === 'stop' ? 'off' : 'on',
     ]);
 
+    // Publie la commande vers l'actionneur (ex: LED) via MQTT en temps réel.
+    try {
+        app(MqttService::class)->publishAction($actionneur->id, $command === 'stop' ? 'off' : 'on');
+    } catch (\Throwable $e) {
+        // Le polling HTTP (GET /esp/actions) reste disponible en secours.
+    }
+
     return response()->json([
         'success' => true,
         'id_action' => 'ACT-' . str_pad((string) $action->id, 3, '0', STR_PAD_LEFT),
         'status' => 'Commande envoyee',
         'actionneur' => $actionneur->nom,
     ]);
+});
+
+/*
+ | Light-weight endpoint for ESP32 devices to poll for pending actions.
+ | Usage: GET /api/esp/actions/{actuator}?since=2026-08-05T01:00:00
+ */
+Route::get('/esp/actions/{actuator}', function (Request $request, string $actuator) {
+    $since = $request->query('since');
+
+    $allowedActuators = [
+        'irrigation' => ['pompe', 'irrigation'],
+        'ventilation' => ['ventilateur', 'ventilation'],
+        'light' => ['lampe', 'light', 'eclairage', 'relais', 'relai'],
+    ];
+
+    if (! array_key_exists($actuator, $allowedActuators)) {
+        return response()->json([], 200);
+    }
+
+    $keywords = $allowedActuators[$actuator];
+
+    $actionneur = Actionneur::query()
+        ->where(function ($query) use ($keywords) {
+            foreach ($keywords as $keyword) {
+                $query->orWhere('nom', 'like', "%{$keyword}%")
+                    ->orWhere('type', 'like', "%{$keyword}%");
+            }
+        })
+        ->first();
+
+    if (! $actionneur) {
+        return response()->json([], 200);
+    }
+
+    $query = \App\Models\Action::query()->where('actionneur_id', $actionneur->id)->orderByDesc('date_declenchement');
+
+    if ($since) {
+        try {
+            $query->where('date_declenchement', '>', date('Y-m-d H:i:s', strtotime($since)));
+        } catch (\Throwable $e) {
+            // ignore parse errors
+        }
+    }
+
+    $rows = $query->limit(20)->get()->map(fn ($action) => [
+        'id' => $action->id,
+        'command' => strtolower((string) $action->nom),
+        'status' => $action->statut,
+        'date' => $action->date_declenchement,
+        'source' => $action->source,
+    ])->values();
+
+    return response()->json($rows);
 });
 });
 

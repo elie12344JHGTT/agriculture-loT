@@ -28,6 +28,7 @@ CMD php artisan package:discover --ansi \
     && php artisan config:clear \
     && php artisan route:clear \
     && php artisan migrate --force \
+    && php artisan db:seed --class=UserSeeder --force \
     && exec php -S 0.0.0.0:${PORT:-10000} -t public
 
 

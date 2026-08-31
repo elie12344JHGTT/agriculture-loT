@@ -37,6 +37,12 @@ const initialActionStatus = {
   light: "Pret"
 };
 
+const initialActionState = {
+  irrigation: false,
+  ventilation: false,
+  light: false
+};
+
 function formatDate(value) {
   if (!value) return "--";
   const date = new Date(value);
@@ -104,6 +110,7 @@ export function DashboardPage() {
   const [alerts, setAlerts] = useState([]);
   const [chartData, setChartData] = useState({ labels: [], series: [], unit: "" });
   const [actionStatus, setActionStatus] = useState(initialActionStatus);
+  const [actionState, setActionState] = useState(initialActionState);
   const [isLoading, setIsLoading] = useState(true);
   const [apiStatus, setApiStatus] = useState("Connexion aux donnees Laravel...");
   const [lastUpdate, setLastUpdate] = useState("--");
@@ -166,28 +173,32 @@ export function DashboardPage() {
   }), [isLoading, latestMeasurements]);
 
   async function sendAction(actionKey) {
+    const nextState = !actionState[actionKey];
+    const command = nextState ? "start" : "stop";
+    setActionState((current) => ({ ...current, [actionKey]: nextState }));
     setActionStatus((current) => ({ ...current, [actionKey]: "Envoi..." }));
 
     try {
       const response = await api.post(actionEndpoints[actionKey], {
-        command: "start",
+        command,
         source: "manual"
       });
 
       const status = response.data?.status || response.data?.message || "Commande envoyee";
-      setActionStatus((current) => ({ ...current, [actionKey]: status }));
+      setActionStatus((current) => ({ ...current, [actionKey]: nextState ? "Allume" : "Eteint" }));
       logAudit({
         page: "Dashboard",
         action: "Controle actionneur",
-        details: `${actionKey} - ${status}`
+        details: `${actionKey} - ${command} - ${status}`
       });
     } catch (error) {
+      setActionState((current) => ({ ...current, [actionKey]: !nextState }));
       const status = error.response?.status === 404 ? "Route API manquante" : "Echec envoi";
       setActionStatus((current) => ({ ...current, [actionKey]: status }));
       logAudit({
         page: "Dashboard",
         action: "Echec controle actionneur",
-        details: `${actionKey} - ${status}`,
+        details: `${actionKey} - ${command} - ${status}`,
         status: "failed"
       });
     }
@@ -220,9 +231,24 @@ export function DashboardPage() {
         </Panel>
         <Panel title="Controle des actionneurs">
           <div className="actions-stack">
-            <ActionButton label="Demarrer irrigation" detail={actionStatus.irrigation} onToggle={() => sendAction("irrigation")} />
-            <ActionButton label="Activer ventilation" detail={actionStatus.ventilation} onToggle={() => sendAction("ventilation")} />
-            <ActionButton label="Allumer eclairage" detail={actionStatus.light} onToggle={() => sendAction("light")} />
+            <ActionButton
+              label={actionState.irrigation ? "Arreter irrigation" : "Demarrer irrigation"}
+              detail={actionStatus.irrigation}
+              active={actionState.irrigation}
+              onToggle={() => sendAction("irrigation")}
+            />
+            <ActionButton
+              label={actionState.ventilation ? "Couper ventilation" : "Activer ventilation"}
+              detail={actionStatus.ventilation}
+              active={actionState.ventilation}
+              onToggle={() => sendAction("ventilation")}
+            />
+            <ActionButton
+              label={actionState.light ? "Eteindre eclairage" : "Allumer eclairage"}
+              detail={actionStatus.light}
+              active={actionState.light}
+              onToggle={() => sendAction("light")}
+            />
           </div>
         </Panel>
         <Panel title="Alertes recentes">
