@@ -15,13 +15,19 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        if (app()->environment('production')) {
+            $this->command?->warn('UserSeeder ignore en production pour eviter les comptes demo.');
+            return;
+        }
+
+        $demoPassword = env('DEMO_USER_PASSWORD', 'password123');
+
         // 1. Création de l'Administrateur
         $admin = User::updateOrCreate(
             ['email' => 'admin@agri-iot.com'],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make($demoPassword),
                 'email_verified_at' => now(),
             ]
         );
@@ -42,7 +48,7 @@ class UserSeeder extends Seeder
             ['email' => 'agriculteur@agri-iot.com'],
             [
                 'name' => 'Agriculteur',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make($demoPassword),
                 'email_verified_at' => now(),
             ]
         );
@@ -59,4 +65,3 @@ class UserSeeder extends Seeder
         );
     }
 }
-
