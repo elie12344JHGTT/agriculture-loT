@@ -17,8 +17,10 @@ class CapteurMqttSeeder extends Seeder
     {
         $parcelle = Parcelle::first();
         $seuilTemperature = Seuil::where('nom', 'like', '%Température%')->first();
+        $seuilHumiditeAir = Seuil::where('nom', 'like', '%Humidité Air%')->first();
         $seuilLuminosite = Seuil::where('nom', 'like', '%Luminosité%')->first();
         $seuilEau = Seuil::where('nom', 'like', '%Niveau%')->first();
+        $seuilCo2 = Seuil::where('nom', 'like', '%CO2%')->first();
 
         if (! $parcelle) {
             $this->command->error('Aucune parcelle disponible : lancez ParcelleSeeder d\'abord.');
@@ -27,8 +29,10 @@ class CapteurMqttSeeder extends Seeder
 
         $capteurs = [
             ['nom' => 'Capteur Température MQTT', 'type' => 'DHT22', 'seuil' => $seuilTemperature],
+            ['nom' => 'Capteur Humidité Air MQTT', 'type' => 'Humidité Air', 'seuil' => $seuilHumiditeAir],
             ['nom' => 'Capteur Luminosité MQTT', 'type' => 'Luminosité', 'seuil' => $seuilLuminosite],
             ['nom' => 'Capteur Niveau Eau MQTT', 'type' => 'Niveau Eau', 'seuil' => $seuilEau],
+            ['nom' => 'Capteur CO2 MQTT', 'type' => 'CO2', 'seuil' => $seuilCo2],
         ];
 
         foreach ($capteurs as $definition) {
@@ -46,6 +50,6 @@ class CapteurMqttSeeder extends Seeder
             );
         }
 
-        $this->command->info('Capteurs MQTT créés (température, luminosité, niveau d\'eau).');
+        $this->command->info('Capteurs MQTT créés (température, humidité air, luminosité, niveau d\'eau, CO2).');
     }
 }

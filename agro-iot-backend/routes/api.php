@@ -263,16 +263,29 @@ Route::get('/test-connection', function () {
 });
 
 Route::get('/measurements/latest', function () {
+    $normalize = function (string $value): string {
+        return strtr(strtolower($value), [
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'î' => 'i', 'ï' => 'i',
+            'ô' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c',
+        ]);
+    };
+
     $latestMeasures = Mesure::with('capteur')
         ->orderByDesc('date')
         ->get()
-        ->groupBy(fn ($mesure) => strtolower($mesure->capteur?->type ?? $mesure->capteur?->nom ?? 'capteur'))
+        ->groupBy(fn ($mesure) => $normalize($mesure->capteur?->type ?? $mesure->capteur?->nom ?? 'capteur'))
         ->map(fn ($measures) => $measures->first());
 
-    $findMeasure = function (array $keywords) use ($latestMeasures) {
-        return $latestMeasures->first(function ($mesure, $sensorName) use ($keywords) {
+    $findMeasure = function (array $keywords) use ($latestMeasures, $normalize) {
+        return $latestMeasures->first(function ($mesure, $sensorName) use ($keywords, $normalize) {
+            $sensorName = $normalize($sensorName);
+
             foreach ($keywords as $keyword) {
-                if (str_contains($sensorName, strtolower($keyword))) {
+                if (str_contains($sensorName, $normalize($keyword))) {
                     return true;
                 }
             }
@@ -303,19 +316,52 @@ Route::get('/measurements/latest', function () {
 Route::get('/measurements/chart', function (Request $request) {
     $type = strtolower((string) $request->query('type', 'temperature'));
 
+    $normalizeChart = function (string $value): string {
+        return strtr(strtolower($value), [
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'î' => 'i', 'ï' => 'i',
+            'ô' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c',
+        ]);
+    };
+
+    $keywordsByType = [
+        'temperature' => ['temperature', 'temp', 'dht'],
+        'air_humidity' => ['humid', 'air'],
+        'soil_humidity' => ['soil', 'sol', 'humid', 'moisture', 'eau', 'niveau'],
+        'co2' => ['co2'],
+        'light' => ['light', 'luminos', 'lux'],
+        'water_level' => ['eau', 'niveau', 'water'],
+    ];
+
+    // Générique : si le type demandé n'est pas un bouton du dashboard,
+    // on utilise le terme tel quel.
+    $keywords = $keywordsByType[$type] ?? [$type];
+
     $rows = Mesure::with('capteur')
         ->orderByDesc('date')
-        ->limit(8)
         ->get()
-        ->filter(function ($mesure) use ($type) {
-            $sensorName = strtolower(($mesure->capteur?->type ?? '') . ' ' . ($mesure->capteur?->nom ?? ''));
-            return $type === '' || str_contains($sensorName, $type) || str_contains($sensorName, 'dht');
+        ->filter(function ($mesure) use ($keywords, $normalizeChart) {
+            $sensorName = $normalizeChart(($mesure->capteur?->type ?? '') . ' ' . ($mesure->capteur?->nom ?? ''));
+
+            foreach ($keywords as $keyword) {
+                if (str_contains($sensorName, $normalizeChart($keyword))) {
+                    return true;
+                }
+            }
+
+            return false;
         })
+        ->take(20)
         ->sortBy('date')
         ->values();
 
     return response()->json([
-        'labels' => $rows->map(fn ($mesure) => optional($mesure->date)->format('H:i') ?? date('H:i', strtotime($mesure->date)))->values(),
+        'labels' => $rows->map(fn ($mesure) => $mesure->date instanceof \DateTimeInterface
+            ? $mesure->date->format('H:i')
+            : date('H:i', strtotime((string) $mesure->date)))->values(),
         'series' => $rows->map(fn ($mesure) => (float) $mesure->valeur)->values(),
         'unit' => $type === 'co2' ? 'ppm' : ($type === 'light' || $type === 'luminosite' ? 'lux' : ($type === 'temperature' ? 'C' : '%')),
     ]);
@@ -792,7 +838,7 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
 
     // Publie la commande vers l'actionneur (ex: LED) via MQTT en temps réel.
     try {
-        app(MqttService::class)->publishAction($actionneur->id, $command === 'stop' ? 'off' : 'on');
+        app(MqttService::class)->publishAction($actionneur->id, $command === 'stop' ? 'off' : 'on', $actuator);
     } catch (\Throwable $e) {
         // Le polling HTTP (GET /esp/actions) reste disponible en secours.
     }

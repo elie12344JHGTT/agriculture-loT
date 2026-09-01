@@ -157,8 +157,12 @@ export function DashboardPage() {
 
     loadDashboardData();
 
+    // Rafraîchit automatiquement les mesures du broker MQTT (ESP32 publie ~toutes les 10 s)
+    const refreshTimer = setInterval(loadDashboardData, 10000);
+
     return () => {
       isMounted = false;
+      clearInterval(refreshTimer);
     };
   }, []);
 

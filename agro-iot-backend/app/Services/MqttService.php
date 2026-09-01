@@ -25,14 +25,19 @@ class MqttService
     /**
      * Publie une commande destinée à un actionneur (ex: une LED).
      *
-     * Message JSON : {"actionneur_id": id, "state": "on"|"off"}
+     * Message JSON : {"actionneur_id": id, "actionneur": "light"|"irrigation"|..., "state": "on"|"off"}
+     *
+     * Le paramètre $slug est le nom logique de l'actionneur utilisé par la route
+     * (light, irrigation, ventilation...). Il permet à l'ESP32 d'identifier la
+     * sortie physique à piloter indépendamment de l'ID en base.
      */
-    public function publishAction(int $actionneurId, string $state): void
+    public function publishAction(int $actionneurId, string $state, ?string $slug = null): void
     {
-        $payload = json_encode([
+        $payload = json_encode(array_filter([
             'actionneur_id' => $actionneurId,
+            'actionneur' => $slug,
             'state' => strtolower($state) === 'off' ? 'off' : 'on',
-        ], JSON_UNESCAPED_UNICODE);
+        ], fn ($value) => $value !== null), JSON_UNESCAPED_UNICODE);
 
         try {
             /** @var MqttClient $mqtt */
@@ -54,7 +59,7 @@ class MqttService
     public function listen(): void
     {
         /** @var MqttClient $mqtt */
-        $mqtt = MQTT::connection();
+        $mqtt = MQTT::connection('listener');
 
         $mqtt->subscribe($this->sensorsTopic(), function (string $topic, string $message) {
             $this->processSensorReading($message);
@@ -81,8 +86,11 @@ class MqttService
 
         $mappings = [
             'temperature' => ['dht', 'temperature', 'temp'],
+            'humidite' => ['humid', 'air', 'humidity'],
+            'humidity' => ['humid', 'air', 'humidity'],
             'luminosite' => ['luminos', 'light', 'lux'],
-            'eau' => ['eau', 'niveau', 'water', 'soil', 'moisture', 'humidit'],
+            'eau' => ['eau', 'niveau', 'water', 'soil', 'moisture'],
+            'co2' => ['co2', 'dioxyde', 'gaz'],
         ];
 
         foreach ($mappings as $grandeur => $keywords) {
@@ -111,17 +119,42 @@ class MqttService
     }
 
     /**
-     * Trouve un capteur actif dont le type (ou le nom) correspond aux mots-clés.
+     * Normalise une chaîne pour comparer sans accents (cf. Luminosité/luminosite).
+     */
+    protected function normalize(string $value): string
+    {
+        return strtr($value, [
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'î' => 'i', 'ï' => 'i',
+            'ô' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c',
+        ]);
+    }
+
+    /**
+     * Trouve le capteur actif correspondant aux mots-clés.
+     * Priorité aux capteurs MQTT dédiés, puis aux plus anciens.
      */
     protected function findCapteurFor(array $keywords): ?Capteur
     {
-        $capteurs = Capteur::where('statut', 'actif')->get();
+        $capteurs = Capteur::where('statut', 'actif')->get()->sort(function ($a, $b) {
+            $aMqtt = str_contains((string) $a->nom, 'MQTT') ? 0 : 1;
+            $bMqtt = str_contains((string) $b->nom, 'MQTT') ? 0 : 1;
+
+            if ($aMqtt !== $bMqtt) {
+                return $aMqtt <=> $bMqtt;
+            }
+
+            return $a->id <=> $b->id;
+        });
 
         foreach ($capteurs as $capteur) {
-            $haystack = strtolower(trim((string) $capteur->type) . ' ' . trim((string) $capteur->nom));
+            $haystack = $this->normalize(strtolower(trim((string) $capteur->type) . ' ' . trim((string) $capteur->nom)));
 
             foreach ($keywords as $keyword) {
-                if (str_contains($haystack, strtolower($keyword))) {
+                if (str_contains($haystack, $this->normalize(strtolower($keyword)))) {
                     return $capteur;
                 }
             }

@@ -25,6 +25,8 @@ class SeuilSeeder extends Seeder
             ['nom' => 'Niveau Réservoir', 'valeur_min' => 10.0, 'valeur_max' => 90.0, 'unite' => '%'],
             ['nom' => 'Température Eau', 'valeur_min' => 10.0, 'valeur_max' => 25.0, 'unite' => '°C'],
             ['nom' => 'Salinité', 'valeur_min' => 0.1, 'valeur_max' => 1.5, 'unite' => 'g/L'],
+            ['nom' => 'CO2 Serre', 'valeur_min' => 350.0, 'valeur_max' => 1000.0, 'unite' => 'ppm'],
+            ['nom' => 'Humidité Air Serre', 'valeur_min' => 40.0, 'valeur_max' => 70.0, 'unite' => '%'],
         ];
 
         foreach ($seuils as $seuil) {
