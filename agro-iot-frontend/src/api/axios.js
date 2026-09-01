@@ -1,9 +1,22 @@
 import axios from 'axios';
 
 const AUTH_STORAGE_KEY = 'agro-iot-auth';
+const ONLINE_API_URL = 'https://agro-iot-backend.onrender.com';
+const LOCAL_API_URL = 'http://127.0.0.1:8000';
+
+function resolveApiBaseUrl() {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+
+    const host = window.location.hostname;
+    const isLocalFrontend = host === 'localhost' || host === '127.0.0.1';
+
+    return isLocalFrontend ? LOCAL_API_URL : ONLINE_API_URL;
+}
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://agro-iot-backend.onrender.com',
+    baseURL: resolveApiBaseUrl(),
     withCredentials: true,
     withXSRFToken: true,
     headers: {
@@ -39,4 +52,3 @@ api.interceptors.response.use(
     }
 );
 export default api;
-
