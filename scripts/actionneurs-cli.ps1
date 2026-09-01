@@ -18,9 +18,9 @@ $actuatorAliases = @{
     "ventilateur" = "ventilation"
     "light" = "light"
     "eclairage" = "light"
-    "éclairage" = "light"
+    "ï¿½clairage" = "light"
     "luminosite" = "light"
-    "luminosité" = "light"
+    "luminositï¿½" = "light"
     "lampe" = "light"
     "all" = "all"
     "tout" = "all"
@@ -30,15 +30,15 @@ $commandAliases = @{
     "start" = "start"
     "on" = "start"
     "demarrer" = "start"
-    "démarrer" = "start"
+    "dï¿½marrer" = "start"
     "activer" = "start"
     "allumer" = "start"
     "stop" = "stop"
     "off" = "stop"
     "arreter" = "stop"
-    "arrêter" = "stop"
+    "arrï¿½ter" = "stop"
     "eteindre" = "stop"
-    "éteindre" = "stop"
+    "ï¿½teindre" = "stop"
 }
 
 function Show-Help {
@@ -73,6 +73,23 @@ function Normalize-Command([string]$value) {
     return $null
 }
 
+function Get-ActuatorSuccessMessage([string]$target, [string]$action) {
+    $actuatorNames = @{
+        "irrigation" = "Arrosage"
+        "ventilation" = "Ventilation"
+        "light" = "Eclairage"
+    }
+    $actuatorName = $actuatorNames[$target]
+
+    if ($action -eq "start") {
+        if ($target -eq "light") { return "$actuatorName allume avec succes." }
+        return "$actuatorName activee avec succes."
+    }
+
+    if ($target -eq "light") { return "$actuatorName eteint avec succes." }
+    return "$actuatorName arretee avec succes."
+}
+
 function Send-ActuatorCommand([string]$target, [string]$action, [string]$source) {
     $endpoint = "$apiBaseUrl/actuators/$target"
     $body = @{
@@ -89,7 +106,7 @@ function Send-ActuatorCommand([string]$target, [string]$action, [string]$source)
 
     try {
         $response = Invoke-RestMethod -Uri $endpoint -Method Post -Headers $headers -ContentType "application/json" -Body $body
-        $response | ConvertTo-Json -Compress
+        Write-Host "[OK] $(Get-ActuatorSuccessMessage $target $action)"
         return 0
     } catch {
         $statusCode = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }

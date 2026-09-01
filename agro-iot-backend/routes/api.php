@@ -10,6 +10,7 @@ use App\Models\Mesure;
 use App\Models\Notification_systeme as NotificationSysteme;
 use App\Models\Seuil;
 use App\Models\Script;
+use App\Services\MqttService;
 use App\Support\AgroApiToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -83,7 +84,7 @@ if (! function_exists('agro_require_role')) {
     function agro_require_role(Request $request, array $roles)
     {
         $user = $request->attributes->get('agro_user') ?? $request->user();
-        $role = $user?->profil?->role;
+        $role = agro_normalize_role($user?->profil?->role ?? null);
 
         if (! $user || ! in_array($role, $roles, true)) {
             return response()->json([
@@ -92,6 +93,27 @@ if (! function_exists('agro_require_role')) {
         }
 
         return null;
+    }
+}
+
+if (! function_exists('agro_normalize_role')) {
+    function agro_normalize_role(?string $role): string
+    {
+        $normalized = strtolower((string) $role);
+
+        if (str_contains($normalized, 'admin')) {
+            return 'Admin';
+        }
+
+        if (str_contains($normalized, 'technicien') || str_contains($normalized, 'technician') || str_contains($normalized, 'tech')) {
+            return 'Technicien';
+        }
+
+        if (str_contains($normalized, 'agricul') || str_contains($normalized, 'agri')) {
+            return 'Agriculteur';
+        }
+
+        return 'Agriculteur';
     }
 }
 
@@ -159,7 +181,7 @@ Route::post('/auth/login', function (Request $request) {
             'name' => $user->name,
             'nom' => $user->name,
             'email' => $user->email,
-            'role' => $user->profil?->role ?? 'Agriculteur',
+            'role' => agro_normalize_role($user->profil?->role ?? 'Agriculteur'),
             'status' => 'Actif',
             'audit_session_id' => $auditSessionId,
         ],
@@ -177,7 +199,7 @@ Route::get('/auth/me', function (Request $request) {
             'name' => $user->name,
             'nom' => $user->name,
             'email' => $user->email,
-            'role' => $user->profil?->role ?? 'Agriculteur',
+            'role' => agro_normalize_role($user->profil?->role ?? 'Agriculteur'),
             'status' => 'Actif',
             'audit_session_id' => $user->audit_session_id,
         ],
@@ -241,16 +263,29 @@ Route::get('/test-connection', function () {
 });
 
 Route::get('/measurements/latest', function () {
+    $normalize = function (string $value): string {
+        return strtr(strtolower($value), [
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'î' => 'i', 'ï' => 'i',
+            'ô' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c',
+        ]);
+    };
+
     $latestMeasures = Mesure::with('capteur')
         ->orderByDesc('date')
         ->get()
-        ->groupBy(fn ($mesure) => strtolower($mesure->capteur?->type ?? $mesure->capteur?->nom ?? 'capteur'))
+        ->groupBy(fn ($mesure) => $normalize($mesure->capteur?->type ?? $mesure->capteur?->nom ?? 'capteur'))
         ->map(fn ($measures) => $measures->first());
 
-    $findMeasure = function (array $keywords) use ($latestMeasures) {
-        return $latestMeasures->first(function ($mesure, $sensorName) use ($keywords) {
+    $findMeasure = function (array $keywords) use ($latestMeasures, $normalize) {
+        return $latestMeasures->first(function ($mesure, $sensorName) use ($keywords, $normalize) {
+            $sensorName = $normalize($sensorName);
+
             foreach ($keywords as $keyword) {
-                if (str_contains($sensorName, strtolower($keyword))) {
+                if (str_contains($sensorName, $normalize($keyword))) {
                     return true;
                 }
             }
@@ -281,19 +316,52 @@ Route::get('/measurements/latest', function () {
 Route::get('/measurements/chart', function (Request $request) {
     $type = strtolower((string) $request->query('type', 'temperature'));
 
+    $normalizeChart = function (string $value): string {
+        return strtr(strtolower($value), [
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'î' => 'i', 'ï' => 'i',
+            'ô' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c',
+        ]);
+    };
+
+    $keywordsByType = [
+        'temperature' => ['temperature', 'temp', 'dht'],
+        'air_humidity' => ['humid', 'air'],
+        'soil_humidity' => ['soil', 'sol', 'humid', 'moisture', 'eau', 'niveau'],
+        'co2' => ['co2'],
+        'light' => ['light', 'luminos', 'lux'],
+        'water_level' => ['eau', 'niveau', 'water'],
+    ];
+
+    // Générique : si le type demandé n'est pas un bouton du dashboard,
+    // on utilise le terme tel quel.
+    $keywords = $keywordsByType[$type] ?? [$type];
+
     $rows = Mesure::with('capteur')
         ->orderByDesc('date')
-        ->limit(8)
         ->get()
-        ->filter(function ($mesure) use ($type) {
-            $sensorName = strtolower(($mesure->capteur?->type ?? '') . ' ' . ($mesure->capteur?->nom ?? ''));
-            return $type === '' || str_contains($sensorName, $type) || str_contains($sensorName, 'dht');
+        ->filter(function ($mesure) use ($keywords, $normalizeChart) {
+            $sensorName = $normalizeChart(($mesure->capteur?->type ?? '') . ' ' . ($mesure->capteur?->nom ?? ''));
+
+            foreach ($keywords as $keyword) {
+                if (str_contains($sensorName, $normalizeChart($keyword))) {
+                    return true;
+                }
+            }
+
+            return false;
         })
+        ->take(20)
         ->sortBy('date')
         ->values();
 
     return response()->json([
-        'labels' => $rows->map(fn ($mesure) => optional($mesure->date)->format('H:i') ?? date('H:i', strtotime($mesure->date)))->values(),
+        'labels' => $rows->map(fn ($mesure) => $mesure->date instanceof \DateTimeInterface
+            ? $mesure->date->format('H:i')
+            : date('H:i', strtotime((string) $mesure->date)))->values(),
         'series' => $rows->map(fn ($mesure) => (float) $mesure->valeur)->values(),
         'unit' => $type === 'co2' ? 'ppm' : ($type === 'light' || $type === 'luminosite' ? 'lux' : ($type === 'temperature' ? 'C' : '%')),
     ]);
@@ -558,7 +626,7 @@ Route::get('/users', function (Request $request) {
         'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
         'nom' => $user->name,
         'email' => $user->email,
-        'role' => $user->profil?->role ?? 'Agriculteur',
+        'role' => agro_normalize_role($user->profil?->role ?? 'Agriculteur'),
         'status' => $user->email_verified_at ? 'Actif' : 'Invite',
         'password' => '',
     ])->values();
@@ -605,7 +673,7 @@ Route::post('/users', function (Request $request) {
         'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
         'nom' => $user->name,
         'email' => $user->email,
-        'role' => $user->profil?->role ?? $data['role'],
+        'role' => agro_normalize_role($user->profil?->role ?? $data['role']),
         'status' => $user->email_verified_at ? 'Actif' : 'Invite',
         'password' => '',
     ], 201);
@@ -654,7 +722,7 @@ Route::put('/users/{user}', function (Request $request, User $user) {
         'id_user' => 'USR-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
         'nom' => $user->name,
         'email' => $user->email,
-        'role' => $user->profil?->role ?? $data['role'],
+        'role' => agro_normalize_role($user->profil?->role ?? $data['role']),
         'status' => $user->email_verified_at ? 'Actif' : 'Invite',
         'password' => '',
     ]);
@@ -723,7 +791,7 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
     $allowedActuators = [
         'irrigation' => ['pompe', 'irrigation'],
         'ventilation' => ['ventilateur', 'ventilation'],
-        'light' => ['lampe', 'light', 'eclairage'],
+        'light' => ['lampe', 'light', 'eclairage', 'relais', 'relai'],
     ];
 
     if (! array_key_exists($actuator, $allowedActuators)) {
@@ -768,12 +836,72 @@ Route::post('/actuators/{actuator}', function (Request $request, string $actuato
         'statut' => $command === 'stop' ? 'off' : 'on',
     ]);
 
+    // Publie la commande vers l'actionneur (ex: LED) via MQTT en temps réel.
+    try {
+        app(MqttService::class)->publishAction($actionneur->id, $command === 'stop' ? 'off' : 'on', $actuator);
+    } catch (\Throwable $e) {
+        // Le polling HTTP (GET /esp/actions) reste disponible en secours.
+    }
+
     return response()->json([
         'success' => true,
         'id_action' => 'ACT-' . str_pad((string) $action->id, 3, '0', STR_PAD_LEFT),
         'status' => 'Commande envoyee',
         'actionneur' => $actionneur->nom,
     ]);
+});
+
+/*
+ | Light-weight endpoint for ESP32 devices to poll for pending actions.
+ | Usage: GET /api/esp/actions/{actuator}?since=2026-08-05T01:00:00
+ */
+Route::get('/esp/actions/{actuator}', function (Request $request, string $actuator) {
+    $since = $request->query('since');
+
+    $allowedActuators = [
+        'irrigation' => ['pompe', 'irrigation'],
+        'ventilation' => ['ventilateur', 'ventilation'],
+        'light' => ['lampe', 'light', 'eclairage', 'relais', 'relai'],
+    ];
+
+    if (! array_key_exists($actuator, $allowedActuators)) {
+        return response()->json([], 200);
+    }
+
+    $keywords = $allowedActuators[$actuator];
+
+    $actionneur = Actionneur::query()
+        ->where(function ($query) use ($keywords) {
+            foreach ($keywords as $keyword) {
+                $query->orWhere('nom', 'like', "%{$keyword}%")
+                    ->orWhere('type', 'like', "%{$keyword}%");
+            }
+        })
+        ->first();
+
+    if (! $actionneur) {
+        return response()->json([], 200);
+    }
+
+    $query = \App\Models\Action::query()->where('actionneur_id', $actionneur->id)->orderByDesc('date_declenchement');
+
+    if ($since) {
+        try {
+            $query->where('date_declenchement', '>', date('Y-m-d H:i:s', strtotime($since)));
+        } catch (\Throwable $e) {
+            // ignore parse errors
+        }
+    }
+
+    $rows = $query->limit(20)->get()->map(fn ($action) => [
+        'id' => $action->id,
+        'command' => strtolower((string) $action->nom),
+        'status' => $action->statut,
+        'date' => $action->date_declenchement,
+        'source' => $action->source,
+    ])->values();
+
+    return response()->json($rows);
 });
 });
 

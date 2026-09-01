@@ -17,36 +17,46 @@ class UserSeeder extends Seeder
     {
         //
         // 1. Création de l'Administrateur
-        $admin = User::create([
-            'name' => 'Admin',
-            'email' => 'admin@agri-iot.com',
-            'password' => Hash::make('password123'), // Haché ici
-        ]);
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@agri-iot.com'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('password123'),
+                'email_verified_at' => now(),
+            ]
+        );
 
-        Profil::create([
-            'user_id' => $admin->id,
-            'nom' => 'Administrateur',
-            'postnom' => 'System',
-            'prenom' => 'Root',
-            'telephone' => '+243999999999',
-            'role' => 'Administrateur',
-        ]);
+        Profil::updateOrCreate(
+            ['user_id' => $admin->id],
+            [
+                'nom' => 'Administrateur',
+                'postnom' => 'System',
+                'prenom' => 'Root',
+                'telephone' => '+243999999999',
+                'role' => 'Administrateur',
+            ]
+        );
 
         // 2. Création de l'Utilisateur (Agriculteur)
-        $user = User::create([
-            'name' => 'Agriculteur',
-            'email' => 'agriculteur@agri-iot.com',
-            'password' => Hash::make('password123'),
-        ]);
+        $user = User::updateOrCreate(
+            ['email' => 'agriculteur@agri-iot.com'],
+            [
+                'name' => 'Agriculteur',
+                'password' => Hash::make('password123'),
+                'email_verified_at' => now(),
+            ]
+        );
 
-        Profil::create([
-            'user_id' => $user->id,
-            'nom' => 'kizekele',
-            'postnom' => 'Musaga',
-            'prenom' => 'John',
-            'telephone' => '+243855039424',
-            'role' => 'Agriculteur',
-        ]);
+        Profil::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'nom' => 'kizekele',
+                'postnom' => 'Musaga',
+                'prenom' => 'John',
+                'telephone' => '+243855039424',
+                'role' => 'Agriculteur',
+            ]
+        );
     }
 }
 
