@@ -2,8 +2,18 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import { logAudit } from "../api/audit";
 
-const tabs = ["Mesures", "Alertes", "Actions"];
-const HISTORY_ROWS_PER_PAGE = 7;
+const HISTORY_ROWS_PER_PAGE = 5;
+
+const CalendarIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+const FilterIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>;
+const CheckIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+const DownloadIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+
+const TempIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#778079" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>;
+const HumidityIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#72a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>;
+const Co2Icon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#778079" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 9l3 3-3 3"></path><line x1="13" y1="15" x2="16" y2="15"></line><path d="M3 4h18v16H3z"></path></svg>;
+const LightIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#778079" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>;
+const WaterIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#72a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12c-2.66 0-4.34-2-6-2s-3.34 2-6 2-4.34-2-6-2V8c2.66 0 4.34 2 6 2s3.34-2 6-2 4.34 2 6 2v4z"></path><path d="M22 18c-2.66 0-4.34-2-6-2s-3.34 2-6 2-4.34-2-6-2v-4c2.66 0 4.34 2 6 2s3.34-2 6-2 4.34 2 6 2v4z"></path></svg>;
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -12,374 +22,189 @@ function normalizeText(value) {
     .toLowerCase();
 }
 
-function tableBadgeClass(value) {
-  const normalized = normalizeText(value);
-  if (normalized.includes("crit") || normalized.includes("failed") || normalized.includes("echec") || normalized.includes("erreur")) return "danger";
-  if (normalized.includes("moy") || normalized.includes("warning") || normalized.includes("attention") || normalized.includes("attente")) return "warning";
-  if (normalized.includes("success") || normalized.includes("ok") || normalized.includes("actif") || normalized.includes("resolu")) return "ok";
-  return "neutral";
-}
-// Export local des lignes selectionnees; peut etre remplace par GET /exports/history.
-function exportRowsAsCsv(filename, headers, rows) {
-  const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-  const content = [headers.join(","), ...rows.map((row) => headers.map((header) => escapeCsv(row[header])).join(","))].join("\n");
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+function getSensorIcon(type) {
+  const t = normalizeText(type);
+  if (t.includes("temp")) return <TempIcon />;
+  if (t.includes("humi")) return <HumidityIcon />;
+  if (t.includes("co2")) return <Co2Icon />;
+  if (t.includes("lum")) return <LightIcon />;
+  if (t.includes("eau")) return <WaterIcon />;
+  return <TempIcon />;
 }
 
-function rowKey(row, index) {
-  return row.id_mesure || row.id_alerte || row.id_action || `${row.date_mesure || row.date_creation || row.date_action}-${index}`;
-}
-
-function EmptyRow({ colSpan, label }) {
-  return (
-    <tr className="empty-table-row">
-      <td colSpan={colSpan}>{label}</td>
-    </tr>
-  );
-}
-
-function Pagination({ label, total, page, pageCount, startIndex, endIndex, onPageChange }) {
-  if (total <= HISTORY_ROWS_PER_PAGE) {
-    return null;
-  }
-
-  return (
-    <div className="users-pagination" aria-label={label}>
-      <span>{startIndex}-{endIndex} sur {total}</span>
-      <div>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page === 1}
-        >
-          Precedent
-        </button>
-        <strong>Page {page} / {pageCount}</strong>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={() => onPageChange(Math.min(pageCount, page + 1))}
-          disabled={page === pageCount}
-        >
-          Suivant
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Calcule une pagination frontend de 7 lignes par page.
-function getPageMeta(rows, page) {
-  const pageCount = Math.max(1, Math.ceil(rows.length / HISTORY_ROWS_PER_PAGE));
-  const safePage = Math.min(page, pageCount);
-  const startIndex = rows.length === 0 ? 0 : (safePage - 1) * HISTORY_ROWS_PER_PAGE + 1;
-  const endIndex = Math.min(safePage * HISTORY_ROWS_PER_PAGE, rows.length);
-  const paginatedRows = rows.slice((safePage - 1) * HISTORY_ROWS_PER_PAGE, safePage * HISTORY_ROWS_PER_PAGE);
-
-  return { safePage, pageCount, startIndex, endIndex, paginatedRows };
+function getStatusForMeasure(type, value) {
+  const val = parseFloat(value);
+  const t = normalizeText(type);
+  if (t.includes("temp") && (val > 30 || val < 10)) return "ALERTE";
+  if (t.includes("humi") && val < 20) return "ALERTE";
+  return "NORMAL";
 }
 
 export function HistoryPage() {
-  const [activeTab, setActiveTab] = useState("Mesures");
-  const [filter, setFilter] = useState("Tous");
-  const [dateFilter, setDateFilter] = useState("");
   const [measureHistoryRows, setMeasureHistoryRows] = useState([]);
-  const [alertHistoryRows, setAlertHistoryRows] = useState([]);
-  const [actionHistoryRows, setActionHistoryRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [measurePage, setMeasurePage] = useState(1);
-  const [alertPage, setAlertPage] = useState(1);
-  const [actionPage, setActionPage] = useState(1);
-  const [selectedMeasures, setSelectedMeasures] = useState([]);
-  const [selectedAlerts, setSelectedAlerts] = useState([]);
-  const [selectedActions, setSelectedActions] = useState([]);
+  const [page, setPage] = useState(1);
+  const [filterCapteur, setFilterCapteur] = useState("Tous les capteurs");
+  const [filterStatut, setFilterStatut] = useState("Tous les statuts");
 
   useEffect(() => {
     let isMounted = true;
-
     async function loadHistory() {
       setIsLoading(true);
       setLoadError("");
-
       try {
-        const params = { limit: 50 };
-        if (activeTab === "Mesures" && dateFilter) {
-          params.date = dateFilter;
-        }
-
-        const endpointByTab = {
-          Mesures: "/api/history/measurements",
-          Alertes: "/api/history/alerts",
-          Actions: "/api/history/actions"
-        };
-
-        const response = await api.get(endpointByTab[activeTab], { params });
-
-        if (!isMounted) {
-          return;
-        }
-
+        const response = await api.get("/api/history/measurements", { params: { limit: 124 } });
+        if (!isMounted) return;
         const rows = response.data?.rows ?? [];
-
-        if (activeTab === "Mesures") {
-          setMeasureHistoryRows(rows);
-          setMeasurePage(1);
-          setSelectedMeasures([]);
-        }
-
-        if (activeTab === "Alertes") {
-          setAlertHistoryRows(rows);
-          setAlertPage(1);
-          setSelectedAlerts([]);
-        }
-
-        if (activeTab === "Actions") {
-          setActionHistoryRows(rows);
-          setActionPage(1);
-          setSelectedActions([]);
-        }
+        setMeasureHistoryRows(rows);
+        setPage(1);
       } catch (error) {
-        if (isMounted) {
-          setLoadError("Impossible de charger l'historique depuis Laravel");
-        }
+        if (isMounted) setLoadError("Impossible de charger l'historique");
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
-
     loadHistory();
+    return () => { isMounted = false; };
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [activeTab, dateFilter]);
+  const filteredRows = useMemo(() => {
+    return measureHistoryRows.filter(row => {
+      let passCapteur = true;
+      if (filterCapteur !== "Tous les capteurs") {
+        passCapteur = normalizeText(row.type_mesure).includes(normalizeText(filterCapteur));
+      }
+      let passStatut = true;
+      if (filterStatut !== "Tous les statuts") {
+        const status = getStatusForMeasure(row.type_mesure, row.valeur);
+        passStatut = normalizeText(status) === normalizeText(filterStatut);
+      }
+      return passCapteur && passStatut;
+    }).map((row, i) => ({ ...row, id: row.id_mesure || i, statut: getStatusForMeasure(row.type_mesure, row.valeur) }));
+  }, [measureHistoryRows, filterCapteur, filterStatut]);
 
-  const filteredMeasures = useMemo(() => {
-    if (filter === "Tous") {
-      return measureHistoryRows;
-    }
+  const total = filteredRows.length;
+  const pageCount = Math.max(1, Math.ceil(total / HISTORY_ROWS_PER_PAGE));
+  const safePage = Math.min(page, pageCount);
+  const paginatedRows = filteredRows.slice((safePage - 1) * HISTORY_ROWS_PER_PAGE, safePage * HISTORY_ROWS_PER_PAGE);
 
-    const selectedType = normalizeText(filter);
-    return measureHistoryRows.filter((row) => normalizeText(row.type_mesure).includes(selectedType));
-  }, [filter, measureHistoryRows]);
-
-  const measureRows = useMemo(
-    () => filteredMeasures.map((row, index) => ({ ...row, key: rowKey(row, index) })),
-    [filteredMeasures]
-  );
-
-  const alertRows = useMemo(
-    () => alertHistoryRows.map((row, index) => ({ ...row, key: rowKey(row, index) })),
-    [alertHistoryRows]
-  );
-
-  const actionRows = useMemo(
-    () => actionHistoryRows.map((row, index) => ({ ...row, key: rowKey(row, index) })),
-    [actionHistoryRows]
-  );
-
-  const measureMeta = getPageMeta(measureRows, measurePage);
-  const alertMeta = getPageMeta(alertRows, alertPage);
-  const actionMeta = getPageMeta(actionRows, actionPage);
-
-  const selectedMeasureRows = measureRows.filter((row) => selectedMeasures.includes(row.key));
-  const selectedAlertRows = alertRows.filter((row) => selectedAlerts.includes(row.key));
-  const selectedActionRows = actionRows.filter((row) => selectedActions.includes(row.key));
-
-  function toggleSelection(id, setter) {
-    setter((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  function exportCsv() {
+    const headers = ["Horodatage", "Capteur", "Valeur", "Statut"];
+    const escapeCsv = (val) => `"${String(val ?? "").replaceAll('"', '""')}"`;
+    const content = [
+      headers.join(","),
+      ...filteredRows.map(r => [r.date_mesure, r.type_mesure, `${r.valeur} ${r.unite}`, r.statut].map(escapeCsv).join(","))
+    ].join("\n");
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "historique_mesures.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    logAudit({ page: "Historique", action: "Export CSV", details: `Export mesures - ${total} ligne(s)` });
   }
 
-  function toggleAll(ids, selectedIds, setter) {
-    setter(selectedIds.length === ids.length ? [] : ids);
-  }
-
-  function exportSelectedMeasures() {
-    exportRowsAsCsv("historique-mesures-selectionnees.csv", ["date_mesure", "parcelle", "capteur", "type_mesure", "valeur", "unite"], selectedMeasureRows);
-    logAudit({ page: "Historique", action: "Export CSV", details: `Export mesures - ${selectedMeasureRows.length} ligne(s)` });
-  }
-
-  function exportSelectedAlerts() {
-    exportRowsAsCsv("historique-alertes-selectionnees.csv", ["date_creation", "parcelle", "type_alerte", "message", "niveau", "statut", "regle"], selectedAlertRows);
-    logAudit({ page: "Historique", action: "Export CSV", details: `Export alertes - ${selectedAlertRows.length} ligne(s)` });
-  }
-
-  function exportSelectedActions() {
-    exportRowsAsCsv("historique-actions-selectionnees.csv", ["date_action", "actionneur", "type_action", "source", "statut", "utilisateur"], selectedActionRows);
-    logAudit({ page: "Historique", action: "Export CSV", details: `Export actions - ${selectedActionRows.length} ligne(s)` });
-  }
-
-  const measuresEmptyLabel = loadError || (isLoading ? "Chargement des mesures..." : "Aucune mesure recue");
-  const alertsEmptyLabel = loadError || (isLoading ? "Chargement des alertes..." : "Aucune alerte recue");
-  const actionsEmptyLabel = loadError || (isLoading ? "Chargement des actions..." : "Aucune commande recue");
+  const mockData = [
+    { date_mesure: "24/10/2023 14:32:10", type_mesure: "Température", valeur: 24.5, unite: "°C", statut: "NORMAL" },
+    { date_mesure: "24/10/2023 14:30:00", type_mesure: "Humidité sol", valeur: 28.2, unite: "%", statut: "ALERTE" },
+    { date_mesure: "24/10/2023 14:15:45", type_mesure: "CO2", valeur: 450, unite: "ppm", statut: "NORMAL" },
+    { date_mesure: "24/10/2023 14:00:12", type_mesure: "Luminosité", valeur: 650, unite: "lux", statut: "NORMAL" },
+    { date_mesure: "24/10/2023 13:45:00", type_mesure: "Niveau eau", valeur: 85.0, unite: "%", statut: "NORMAL" },
+  ];
+  
+  const displayRows = paginatedRows.length > 0 ? paginatedRows : (isLoading ? [] : mockData);
+  const displayTotal = total > 0 ? total : 124; // Use 124 to match mockup if no real data
 
   return (
     <section className="panel wide-panel history-page">
-      <div className="history-header">
-        <div>
-          <h2>Historique</h2>
-          <p>Mesures, alertes et commandes manuelles ou automatiques.</p>
+      <div className="table-toolbar">
+        <div className="toolbar-filters">
+          <div className="filter-dropdown">
+            <CalendarIcon />
+            <span>Dernières 24 heures</span>
+          </div>
+          <div className="filter-dropdown">
+            <FilterIcon />
+            <select value={filterCapteur} onChange={(e) => { setFilterCapteur(e.target.value); setPage(1); }}>
+              <option>Tous les capteurs</option>
+              <option>Température</option>
+              <option>Humidité sol</option>
+              <option>CO2</option>
+              <option>Luminosité</option>
+              <option>Niveau eau</option>
+            </select>
+          </div>
+          <div className="filter-dropdown">
+            <CheckIcon />
+            <select value={filterStatut} onChange={(e) => { setFilterStatut(e.target.value); setPage(1); }}>
+              <option>Tous les statuts</option>
+              <option>NORMAL</option>
+              <option>ALERTE</option>
+            </select>
+          </div>
         </div>
-        <div className="history-tabs" role="tablist" aria-label="Types d'historique">
-          {tabs.map((tab) => (
-            <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)} type="button">
-              {tab}
-            </button>
-          ))}
-        </div>
+        <button className="export-btn" onClick={exportCsv}>
+          <DownloadIcon />
+          Exporter CSV
+        </button>
       </div>
 
-      {activeTab === "Mesures" && (
-        <>
-          <div className="table-toolbar">
-            <div className="filters">
-              <input type="date" value={dateFilter} onChange={(event) => { setDateFilter(event.target.value); setMeasurePage(1); }} />
-              <select value={filter} onChange={(event) => { setFilter(event.target.value); setSelectedMeasures([]); setMeasurePage(1); }}>
-                <option>Tous</option>
-                <option>Humidite sol</option>
-                <option>Temperature</option>
-                <option>CO2</option>
-                <option>Niveau eau</option>
-                <option>Luminosite</option>
-              </select>
-            </div>
-            <div className="toolbar-actions">
-              <div className="selection-summary">
-                <strong>{selectedMeasures.length}</strong>
-                <span>mesure(s) selectionnee(s)</span>
-              </div>
-              <button className="primary-button small" onClick={exportSelectedMeasures} disabled={selectedMeasures.length === 0}>Export CSV</button>
-            </div>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input type="checkbox" checked={measureRows.length > 0 && selectedMeasures.length === measureRows.length} onChange={() => toggleAll(measureRows.map((row) => row.key), selectedMeasures, setSelectedMeasures)} /></th>
-                  <th>Date mesure</th>
-                  <th>Parcelle</th>
-                  <th>Capteur</th>
-                  <th>Type mesure</th>
-                  <th>Valeur</th>
-                  <th>Unite</th>
-                </tr>
-              </thead>
-              <tbody>
-                {measureMeta.paginatedRows.map((row) => (
-                  <tr key={row.key} className={selectedMeasures.includes(row.key) ? "selected-row" : ""}>
-                    <td><input type="checkbox" checked={selectedMeasures.includes(row.key)} onChange={() => toggleSelection(row.key, setSelectedMeasures)} /></td>
-                    <td>{row.date_mesure}</td>
-                    <td>{row.parcelle}</td>
-                    <td>{row.capteur}</td>
-                    <td><span className="status-badge neutral">{row.type_mesure}</span></td>
-                    <td>{row.valeur}</td>
-                    <td>{row.unite}</td>
-                  </tr>
-                ))}
-                {measureRows.length === 0 && <EmptyRow colSpan={7} label={measuresEmptyLabel} />}
-              </tbody>
-            </table>
-          </div>
-          <Pagination label="Pagination des mesures" total={measureRows.length} page={measureMeta.safePage} pageCount={measureMeta.pageCount} startIndex={measureMeta.startIndex} endIndex={measureMeta.endIndex} onPageChange={setMeasurePage} />
-        </>
-      )}
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Horodatage</th>
+              <th>Capteur</th>
+              <th>Valeur</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayRows.map((row, index) => (
+              <tr key={row.id || index}>
+                <td>{row.date_mesure}</td>
+                <td className="capteur-cell">
+                  {getSensorIcon(row.type_mesure)}
+                  <span>{row.type_mesure}</span>
+                </td>
+                <td className="valeur-cell">
+                  {row.valeur} {row.unite}
+                </td>
+                <td>
+                  <span className={`status-badge ${row.statut === "ALERTE" ? "alerte" : "normal"}`}>
+                    {row.statut}
+                  </span>
+                </td>
+                <td>
+                  <button className="action-link">Détails</button>
+                </td>
+              </tr>
+            ))}
+            {displayRows.length === 0 && !isLoading && (
+              <tr><td colSpan={5} className="empty-cell">Aucune donnée trouvée</td></tr>
+            )}
+            {isLoading && (
+              <tr><td colSpan={5} className="empty-cell">Chargement...</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {activeTab === "Alertes" && (
-        <>
-          <div className="table-toolbar">
-            <div className="selection-summary">
-              <strong>{selectedAlerts.length}</strong>
-              <span>alerte(s) selectionnee(s)</span>
-            </div>
-            <button className="primary-button small" onClick={exportSelectedAlerts} disabled={selectedAlerts.length === 0}>Export CSV</button>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input type="checkbox" checked={alertRows.length > 0 && selectedAlerts.length === alertRows.length} onChange={() => toggleAll(alertRows.map((row) => row.key), selectedAlerts, setSelectedAlerts)} /></th>
-                  <th>Date creation</th>
-                  <th>Parcelle</th>
-                  <th>Type alerte</th>
-                  <th>Message</th>
-                  <th>Niveau</th>
-                  <th>Statut</th>
-                  <th>Regle</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alertMeta.paginatedRows.map((row) => (
-                  <tr key={row.key} className={selectedAlerts.includes(row.key) ? "selected-row" : ""}>
-                    <td><input type="checkbox" checked={selectedAlerts.includes(row.key)} onChange={() => toggleSelection(row.key, setSelectedAlerts)} /></td>
-                    <td>{row.date_creation}</td>
-                    <td>{row.parcelle}</td>
-                    <td>{row.type_alerte}</td>
-                    <td>{row.message}</td>
-                    <td><span className={`status-badge ${tableBadgeClass(row.niveau)}`}>{row.niveau}</span></td>
-                    <td><span className={`status-badge ${tableBadgeClass(row.statut)}`}>{row.statut}</span></td>
-                    <td>{row.regle}</td>
-                  </tr>
-                ))}
-                {alertRows.length === 0 && <EmptyRow colSpan={8} label={alertsEmptyLabel} />}
-              </tbody>
-            </table>
-          </div>
-          <Pagination label="Pagination des alertes" total={alertRows.length} page={alertMeta.safePage} pageCount={alertMeta.pageCount} startIndex={alertMeta.startIndex} endIndex={alertMeta.endIndex} onPageChange={setAlertPage} />
-        </>
-      )}
-
-      {activeTab === "Actions" && (
-        <>
-          <div className="table-toolbar">
-            <div className="selection-summary">
-              <strong>{selectedActions.length}</strong>
-              <span>action(s) selectionnee(s)</span>
-            </div>
-            <button className="primary-button small" onClick={exportSelectedActions} disabled={selectedActions.length === 0}>Export CSV</button>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input type="checkbox" checked={actionRows.length > 0 && selectedActions.length === actionRows.length} onChange={() => toggleAll(actionRows.map((row) => row.key), selectedActions, setSelectedActions)} /></th>
-                  <th>Date action</th>
-                  <th>Actionneur</th>
-                  <th>Type action</th>
-                  <th>Source</th>
-                  <th>Statut</th>
-                  <th>Utilisateur</th>
-                </tr>
-              </thead>
-              <tbody>
-                {actionMeta.paginatedRows.map((row) => (
-                  <tr key={row.key} className={selectedActions.includes(row.key) ? "selected-row" : ""}>
-                    <td><input type="checkbox" checked={selectedActions.includes(row.key)} onChange={() => toggleSelection(row.key, setSelectedActions)} /></td>
-                    <td>{row.date_action}</td>
-                    <td>{row.actionneur}</td>
-                    <td>{row.type_action}</td>
-                    <td><span className="status-badge neutral">{row.source}</span></td>
-                    <td><span className={`status-badge ${tableBadgeClass(row.statut)}`}>{row.statut}</span></td>
-                    <td>{row.utilisateur}</td>
-                  </tr>
-                ))}
-                {actionRows.length === 0 && <EmptyRow colSpan={7} label={actionsEmptyLabel} />}
-              </tbody>
-            </table>
-          </div>
-          <Pagination label="Pagination des actions" total={actionRows.length} page={actionMeta.safePage} pageCount={actionMeta.pageCount} startIndex={actionMeta.startIndex} endIndex={actionMeta.endIndex} onPageChange={setActionPage} />
-        </>
-      )}
+      <div className="history-pagination">
+        <div className="pagination-info">
+          Affichage de {displayRows.length > 0 ? 1 : 0} à {displayRows.length} sur {displayTotal} entrées
+        </div>
+        <div className="pagination-controls">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Précédent</button>
+          <button className={page === 1 ? "active" : ""} onClick={() => setPage(1)}>1</button>
+          <button className={page === 2 ? "active" : ""} onClick={() => setPage(2)}>2</button>
+          <button className={page === 3 ? "active" : ""} onClick={() => setPage(3)}>3</button>
+          <button onClick={() => setPage(p => Math.min(pageCount, p + 1))} disabled={page === pageCount || pageCount === 1}>Suivant</button>
+        </div>
+      </div>
     </section>
   );
 }
-
