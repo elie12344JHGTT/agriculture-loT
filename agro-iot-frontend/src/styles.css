@@ -325,7 +325,7 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 650px) { .main-panel { margin-left: var(--sidebar-width); padding: 16px; } .history-header,.table-toolbar,.admin-toolbar { align-items: stretch; flex-direction: column; } .admin-search-group { width: 100%; margin-left: 0; } .admin-search-group input { flex: 1; } .admin-section-header .primary-button { width: 100%; } .terminal-panel { min-height: calc(100vh - 120px); } .terminal-statusbar span:nth-child(2) { display: none; } }
 
 /* Compact dashboard treatment based on the supplied dashboard reference. */
-.dashboard-page { max-width: 1220px; padding-top: 18px; }
+.dashboard-page { width: 100%; max-width: none; margin: 0; padding-top: 18px; }
 .dashboard-page .sensor-grid { gap: 12px; margin-bottom: 14px; }
 .dashboard-page .sensor-card { min-height: 118px; padding: 13px; border-radius: 10px; }
 .dashboard-page .sensor-card-icon-wrap { width: 28px; height: 28px; border-radius: 8px; }
@@ -363,5 +363,3 @@ tr:last-child td { border-bottom: 0; }
 .dashboard-page .rule-row { padding: 8px 0; }
 .dashboard-page .rule-row span { font-size: 9px; }
 .dashboard-page .rule-row strong,.dashboard-page .rule-row em { font-size: 9px; }
-
-@media (max-width: 900px) { .dashboard-page { max-width: none; } }
