@@ -389,46 +389,41 @@ export function TerminalPage() {
   return (
     <section className="page-grid terminal-page">
       <div className="terminal-panel">
-        <div className="terminal-titlebar">
-          <div className="terminal-titlebar-dots">
-            <span className="dot dot-red" />
-            <span className="dot dot-yellow" />
-            <span className="dot dot-green" />
-          </div>
-          <span className="terminal-titlebar-title">
-            agro-iot — terminal — bash
-          </span>
-          <span className="terminal-titlebar-spacer" />
-        </div>
-
         <form
           className="terminal-window"
           onClick={focusTerminalInput}
           onSubmit={submit}
         >
           <div className="terminal-log" ref={terminalLogRef} aria-live="polite">
-            {logs.map((log, index) => (
-              <div
-                className={`terminal-line ${log.type}`}
-                key={`${log.type}-${index}-${log.text}`}
-              >
-                {log.text}
-              </div>
-            ))}
+            {logs.map((log, index) => {
+              // Parse out simple prefixes for styling if present
+              let logText = log.text;
+              let prefixClass = "";
+              if (logText.includes("[INFO]") || logText.includes("[HEARTBEAT]") || logText.includes("[SOLAR]")) prefixClass = "text-green";
+              else if (logText.includes("[MQTT]") || logText.includes("[SENSOR]")) prefixClass = "text-cyan";
+              else if (logText.includes("[WARNING]")) prefixClass = "text-orange";
+              else if (logText.includes("[RELAY]")) prefixClass = "text-lightgreen";
+
+              return (
+                <div
+                  className={`terminal-line ${log.type} ${prefixClass}`}
+                  key={`${log.type}-${index}-${log.text}`}
+                >
+                  {logText}
+                </div>
+              );
+            })}
           </div>
 
           <label className="terminal-input-line">
-            <span className="terminal-prompt-user">user@agro-iot</span>
-            <span className="terminal-prompt-sep">:</span>
-            <span className="terminal-prompt-path">~</span>
-            <span className="terminal-prompt符号">$</span>
+            <span className="terminal-prompt-underscore">_</span>
             <input
               ref={terminalInputRef}
               type="text"
               value={command}
               onChange={(event) => setCommand(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isRunning ? "" : "tapez une commande..."}
+              placeholder={isRunning ? "" : "En attente de nouvelles données..."}
               disabled={isRunning}
               autoComplete="off"
               spellCheck={false}
@@ -437,15 +432,6 @@ export function TerminalPage() {
             />
           </label>
         </form>
-
-        <div className="terminal-statusbar">
-          <span>
-            {currentUser?.role || "Agriculteur"} — {currentUser?.name || "invité"}
-          </span>
-          <span>{commandHistory.length} commandes</span>
-          <span>{getTimestamp()}</span>
-        </div>
       </div>
     </section>
-  );
 }

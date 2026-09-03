@@ -22,10 +22,10 @@ export function Header({ activePage, currentUser, navItems, setActivePage, onLog
   return (
     <header className="topbar">
       <div className="topbar-title">
-        <h1>{activePage === "Historique" ? "Historique des mesures" : activePage}</h1>
+        <h1>{activePage === "Historique" ? "Historique des mesures" : activePage === "Terminal" ? "Terminal de l'appareil" : activePage}</h1>
         <div className="topbar-status">
           <span className="status-dot" aria-hidden="true" />
-          <span>{activePage === "Dashboard" ? "Système en ligne" : activePage === "Historique" ? "System Online" : "Agro IoT"}</span>
+          <span>{activePage === "Dashboard" ? "Système en ligne" : activePage === "Historique" ? "System Online" : activePage === "Terminal" ? "Connexion en direct" : "Agro IoT"}</span>
         </div>
       </div>
 
