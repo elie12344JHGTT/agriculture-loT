@@ -1,4 +1,4 @@
-const CACHE_NAME = "agro-iot-pwa-v1";
+const CACHE_NAME = "agro-iot-pwa-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/favicon.png", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

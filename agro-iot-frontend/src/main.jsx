@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App.jsx";
 import "./styles.css";
 import "./login.css";
-import "./dashboard-fix.css";
 import "./history-fix.css";
 
 createRoot(document.getElementById("root")).render(
