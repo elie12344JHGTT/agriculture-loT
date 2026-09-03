@@ -183,7 +183,7 @@ tr:last-child td { border-bottom: 0; }
   .sidebar-nav-item,.logout-button { justify-content: center; padding: 12px; }
   .sidebar-nav-item > span:last-child,.logout-button > span:last-child,.sidebar-irrigation { display: none; }
   .sidebar-nav-icon-wrap { margin: 0; }
-  .topbar,.main-content { margin-left: var(--sidebar-width); }
+  .main-content { margin-left: var(--sidebar-width); }
   .topbar { padding: 16px 22px; }
   .main-content { padding: 22px; }
 }
@@ -205,7 +205,7 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 480px) {
   :root { --sidebar-width: 62px; }
   .sidebar { padding: 14px 7px; }
-  .topbar,.main-content { margin-left: var(--sidebar-width); }
+  .main-content { margin-left: var(--sidebar-width); }
   .topbar-title h1 { font-size: 20px; }
   .sensor-card-footer em { display: none; }
   .sensor-value-row strong { font-size: 24px; }
