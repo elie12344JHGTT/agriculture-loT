@@ -16,21 +16,17 @@ const sensorIcons = {
 };
 
 function getSensorState(card) {
-  if (card.status === "Chargement" || card.status === "--") {
-    return "waiting";
-  }
+  if (card.status === "Chargement" || card.status === "--" || card.status === "Attente") return "waiting";
 
   const value = Number(card.value);
-  if (Number.isNaN(value)) {
-    return "ok";
-  }
+  if (Number.isNaN(value)) return "ok";
 
   if (card.label === "Temperature") {
     if (value < 10 || value > 35) return "danger";
     if (value < 15 || value > 30) return "warning";
   }
 
-  if (card.label === "Humidite air" || card.label === "Humidite sol" || card.label === "Niveau eau") {
+  if (["Humidite air", "Humidite sol", "Niveau eau"].includes(card.label)) {
     if (value < 20) return "danger";
     if (value < 35) return "warning";
   }
@@ -40,28 +36,28 @@ function getSensorState(card) {
     if (value > 700) return "warning";
   }
 
-  if (card.label === "Luminosite" && value < 150) {
-    return "warning";
-  }
-
+  if (card.label === "Luminosite" && value < 150) return "warning";
   return "ok";
 }
 
 export function SensorCard({ card }) {
   const icon = sensorIcons[card.label];
   const state = getSensorState(card);
-  const stateLabel = state === "danger" ? "Critique" : state === "warning" ? "Attention" : state === "waiting" ? "Attente" : "OK";
+  const stateLabel = state === "danger" ? "Critique" : state === "warning" ? "Attention" : state === "waiting" ? "Attente" : "Normal";
 
   return (
-    <article className={`sensor-card ${card.tone} sensor-${state}`}>
+    <article className={`sensor-card ${card.tone || ""} sensor-${state}`}>
       <div className="sensor-card-header">
-        <span>{card.label}</span>
-        {icon && <img className="sensor-card-icon" src={icon} alt="" />}
+        <span className="sensor-card-label">{card.label}</span>
+        {icon && <span className="sensor-card-icon-wrap"><img className="sensor-card-icon" src={icon} alt="" /></span>}
       </div>
-      <strong>{card.value}<small>{card.unit}</small></strong>
+      <div className="sensor-value-row">
+        <strong>{card.value}</strong>
+        <small>{card.unit}</small>
+      </div>
       <div className="sensor-card-footer">
-        <em>{card.status}</em>
-        <span className={`status-badge ${state}`}>{stateLabel}</span>
+        <span className={`status-badge ${state}`}><i aria-hidden="true" />{stateLabel}</span>
+        {card.status && card.status !== stateLabel && <em>{card.status}</em>}
       </div>
     </article>
   );
