@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { navItems } from "./data/mockData.js";
-import { Sidebar } from "./layout/Sidebar.jsx";
 import { Header } from "./layout/Header.jsx";
 import { SplashScreen } from "./components/SplashScreen.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
@@ -154,14 +153,8 @@ export function App() {
     return <LoginPage onLogin={login} />;
   }
 
-  return (
+    return (
     <div className="app-shell">
-      <Sidebar
-        activePage={activePage}
-        navItems={allowedNavItems}
-        setActivePage={setActivePage}
-        onLogout={logout}
-      />
       <main className="main-panel">
         <Header activePage={activePage} currentUser={currentUser} navItems={allowedNavItems} setActivePage={setActivePage} onLogout={logout} />
         {activePage === "Dashboard" && <DashboardPage />}
