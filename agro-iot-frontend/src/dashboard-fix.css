@@ -1,0 +1,334 @@
+/* Dashboard layout fixes
+   Keeps the fixed sidebar from covering the dashboard and gives the
+   React dashboard components their own responsive layout rules. */
+
+.main-panel {
+  margin-left: 280px;
+  width: calc(100% - 280px);
+  min-width: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--bg);
+}
+
+.topbar {
+  width: 100%;
+  margin-left: 0;
+}
+
+.page-grid {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 28px 32px 40px;
+  min-width: 0;
+}
+
+.sensor-grid {
+  width: 100%;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sensor-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.content-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 16px;
+}
+
+.content-grid > .panel {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.content-grid > .panel:first-child {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 400px;
+}
+
+.content-grid > .panel:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.content-grid > .panel:nth-child(3) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.content-grid > .panel:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* LineChart.jsx */
+.chart-widget {
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.chart-summary-strip {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chart-summary-strip span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.chart-summary-strip span strong {
+  margin-right: 3px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.chart-delta {
+  justify-self: end;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.chart-delta.down {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.chart-delta.waiting {
+  background: var(--surface-container);
+  color: var(--muted);
+}
+
+.line-chart {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.grid-lines line {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.line-chart polyline {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.line-chart-area {
+  fill: url(#measureArea);
+  stroke: none;
+}
+
+.line-chart circle {
+  fill: var(--surface);
+  stroke: var(--green);
+  stroke-width: 3;
+}
+
+.chart-label {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.chart-empty-title {
+  fill: var(--text);
+  font-size: 18px;
+  font-weight: 650;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.chart-empty-text {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.chart-empty-state {
+  min-height: 320px;
+  padding: 8px;
+}
+
+/* Action buttons */
+.actions-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-button {
+  min-height: 48px;
+  width: 100%;
+  min-width: 0;
+  padding: 13px 14px;
+}
+
+.action-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-button small {
+  white-space: nowrap;
+}
+
+/* Alerts */
+.alert-list.compact {
+  width: 100%;
+}
+
+.alert-item {
+  min-width: 0;
+}
+
+/* Automatic rules */
+.rules-list {
+  width: 100%;
+  min-width: 0;
+}
+
+.rule,
+.rule-row {
+  min-width: 0;
+}
+
+/* Prevent long API messages from breaking cards. */
+.dashboard-mini-meta {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1400px) {
+  .page-grid {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .sensor-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .content-grid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content-grid > .panel:first-child,
+  .content-grid > .panel:nth-child(2),
+  .content-grid > .panel:nth-child(3),
+  .content-grid > .panel:nth-child(4) {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .main-panel {
+    margin-left: 76px;
+    width: calc(100% - 76px);
+  }
+
+  .topbar {
+    margin-left: 0;
+  }
+
+  .page-grid {
+    padding: 22px;
+  }
+
+  .sensor-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .page-grid {
+    padding: 16px;
+  }
+
+  .sensor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .content-grid {
+    gap: 12px;
+  }
+
+  .chart-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chart-delta {
+    justify-self: start;
+  }
+
+  .chart-widget,
+  .chart-empty-state {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-panel {
+    margin-left: 62px;
+    width: calc(100% - 62px);
+  }
+
+  .sensor-card {
+    min-height: 132px;
+  }
+
+  .chart-summary-strip {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .chart-summary-strip span strong {
+    font-size: 13px;
+  }
+}
