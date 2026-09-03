@@ -67,7 +67,7 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .sidebar-arrow { margin-left: auto; font-size: 17px; }
 .logout-button { color: #657169; }
 
-.topbar { position: sticky; top: 0; z-index: 40; min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 32px; margin-left: var(--sidebar-width); background: rgba(244,247,245,.9); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(209,217,211,.45); }
+.topbar { position: sticky; top: 0; z-index: 40; min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 32px; margin-left: 0; background: rgba(244,247,245,.9); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(209,217,211,.45); }
 .topbar-title h1 { margin: 0; font-size: 30px; line-height: 1.15; font-weight: 650; letter-spacing: -.025em; }
 .topbar-status { display: flex; align-items: center; gap: 8px; margin-top: 7px; color: var(--muted); font-size: 11px; font-weight: 650; letter-spacing: .02em; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(0,107,27,.08); animation: pulse-status 2s infinite; }
