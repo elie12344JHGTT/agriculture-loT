@@ -1,8 +1,11 @@
 import React from "react";
-export function Panel({ title, children }) {
+export function Panel({ title, actionLabel, children }) {
   return (
     <section className="panel">
-      <h2>{title}</h2>
+      <div className="panel-heading">
+        <h2>{title}</h2>
+        {actionLabel && <span className="panel-action">{actionLabel}</span>}
+      </div>
       {children}
     </section>
   );

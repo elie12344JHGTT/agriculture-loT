@@ -209,28 +209,13 @@ export function DashboardPage() {
   }
 
   const visibleAlerts = alerts.length > 0 ? alerts : [apiWaitingAlert];
-  const connectionState = isLoading ? "loading" : latestMeasurements ? "online" : "offline";
-  const connectionLabel = isLoading ? "Connexion aux donnees en cours" : latestMeasurements ? "Donnees connectees" : apiStatus;
-
   return (
-    <section className="page-grid">
-      <div className={`dashboard-connection-status ${connectionState}`} title={connectionLabel} aria-label={connectionLabel}>
-        <span className="wifi-icon" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <i />
-        </span>
-      </div>
-      <div className="dashboard-mini-meta">
-        <span>Derniere mise a jour</span>
-        <strong>{lastUpdate}</strong>
-      </div>
+    <section className="page-grid dashboard-page">
       <div className="sensor-grid">
         {cards.map((card) => <SensorCard key={card.label} card={card} />)}
       </div>
       <div className="content-grid">
-        <Panel title="Evolution des mesures">
+        <Panel title="Evolution des mesures" actionLabel="Export">
           <LineChart labels={chartData.labels} series={chartData.series} unit={chartData.unit} />
         </Panel>
         <Panel title="Controle des actionneurs">
@@ -255,7 +240,7 @@ export function DashboardPage() {
             />
           </div>
         </Panel>
-        <Panel title="Alertes recentes">
+        <Panel title="Alertes recentes" actionLabel="Notifications">
           <div className="alert-list compact">
             {visibleAlerts.slice(0, 3).map((alert, index) => <AlertItem key={`${alert.title}-${index}`} alert={alert} />)}
           </div>
