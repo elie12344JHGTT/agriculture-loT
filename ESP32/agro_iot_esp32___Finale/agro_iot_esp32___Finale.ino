@@ -4,8 +4,8 @@
 #include <ArduinoJson.h>
 
 // ================= WIFI / MQTT =================
-const char* WIFI_SSID     = "VOTRE_SSID_WIFI";        // Remplacer par votre SSID
-const char* WIFI_PASSWORD = "VOTRE_MOT_DE_PASSE_WIFI"; // Remplacer par votre mot de passe
+const char* WIFI_SSID     = "I.K.E";        // SSID du réseau WiFi
+const char* WIFI_PASSWORD = "123456789"; // Mot de passe WiFi
 const char* MQTT_HOST     = "broker.hivemq.com";
 const int   MQTT_PORT     = 1883;
 const char* MQTT_CLIENT_ID = "esp32_agro_john_v2";
