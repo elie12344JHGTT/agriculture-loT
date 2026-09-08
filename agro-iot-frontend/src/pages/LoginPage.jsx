@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import api from "../api/axios";
 import logoAvecNom from "../assets/logos/agri_logo-transparante.png";
+import thermometerIcon from "../assets/icons/thermometer.png";
+import humidityIcon from "../assets/icons/humidity.png";
+import carbonIcon from "../assets/icons/carbon-dioxide.png";
+import lightIcon from "../assets/icons/light-bulb.png";
 import emailIcon from "../assets/icons/email.png";
 import passwordIcon from "../assets/icons/locked-computer.png";
 import showIcon from "../assets/icons/show.png";
@@ -30,10 +34,53 @@ export function LoginPage({ onLogin }) {
 
   return (
     <main className="login-screen">
+      {/* Visual banner: Visible on PC & Tablet, hidden on Mobile */}
+      <section className="login-visual" aria-label="Présentation Agro IoT">
+        <div className="login-brand">
+          <div className="login-brand-mark">
+            <img src={logoAvecNom} alt="Logo Agro IoT" />
+          </div>
+          <div className="login-brand-copy">
+            <strong>Agro IoT</strong>
+            <span>Agriculture intelligente</span>
+          </div>
+        </div>
+
+        <div className="login-copy">
+          <p className="login-kicker">Plateforme de supervision agricole</p>
+          <h1>Une agriculture plus <span>intelligente.</span></h1>
+          <p>
+            Suivez vos cultures, surveillez les conditions de vos parcelles et
+            pilotez vos équipements depuis un seul espace.
+          </p>
+        </div>
+
+        <div className="login-features" aria-label="Données surveillées">
+          {[
+            [thermometerIcon, "Température"],
+            [humidityIcon, "Humidité"],
+            [carbonIcon, "CO₂"],
+            [lightIcon, "Luminosité"],
+          ].map(([icon, label]) => (
+            <div className="login-feature" key={label}>
+              <div className="login-feature-icon">
+                <img src={icon} alt="" />
+              </div>
+              <strong>{label}</strong>
+            </div>
+          ))}
+        </div>
+
+        <p className="login-visual-footer">
+          Supervision en temps réel <span>•</span> Données connectées <span>•</span> Décisions éclairées
+        </p>
+      </section>
+
+      {/* Form panel: Centered and responsive everywhere */}
       <section className="login-panel">
         <div className="login-card">
           <div className="login-card-brand">
-            <div className="login-brand-mark">
+            <div className="login-brand-mark-card">
               <img src={logoAvecNom} alt="Logo Agro IoT" />
             </div>
             <div className="login-brand-text">
