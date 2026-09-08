@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Alerte;
 use App\Models\Capteur;
 use App\Models\Mesure;
+use App\Models\Notification_systeme as NotificationSysteme;
 use PhpMqtt\Client\Contracts\MqttClient;
 use PhpMqtt\Client\Facades\MQTT;
 
@@ -116,6 +118,95 @@ class MqttService
                 'statut' => 'actif',
             ]);
         }
+
+        // --- ALERTES AUTOMATIQUES (reflètent le clignotement des LED côté ESP32) ---
+        // Si le niveau d'eau < 50% : la LED irrigation (broche 25) clignote côté ESP32.
+        if (array_key_exists('eau', $data) && (float) $data['eau'] < 50) {
+            $this->upsertSensorAlert(
+                'eau_basse',
+                'Niveau d\'eau bas',
+                'Le niveau d\'eau est inférieur à 50% : la LED d\'irrigation clignote, le remplissage est recommandé.',
+                'haute',
+                'Critique',
+                false
+            );
+        } else {
+            $this->resolveSensorAlert('eau_basse');
+        }
+
+        // Si le CO2 dépasse le seuil : la LED ventilation (broche 27) clignote côté ESP32.
+        if (array_key_exists('co2', $data) && (float) $data['co2'] > $this->co2Threshold()) {
+            $this->upsertSensorAlert(
+                'co2_eleve',
+                'CO2 élevé',
+                'Le taux de CO2 dépasse le seuil : la LED de ventilation clignote, l\'aération est nécessaire.',
+                'haute',
+                'Critique',
+                false
+            );
+        } else {
+            $this->resolveSensorAlert('co2_eleve');
+        }
+    }
+
+    /**
+     * Seuil de CO2 au-delà duquel la LED ventilation clignote côté ESP32.
+     * Doit rester cohérent avec la constante SEUIL_CO2_ELEVE du firmware.
+     */
+    protected function co2Threshold(): float
+    {
+        return 1000;
+    }
+
+    /**
+     * Crée (ou réactive) une alerte active et sa notification associée,
+     * en évitant de créer des doublons tant qu'une alerte du même type est ouverte.
+     */
+    protected function upsertSensorAlert(
+        string $key,
+        string $type,
+        string $message,
+        string $priorite,
+        string $niveau,
+        bool $statut
+    ): void {
+        $existing = Alerte::where('type_alerte', $type)->where('statut', false)->latest('date')->first();
+
+        if ($existing) {
+            return;
+        }
+
+        $notification = NotificationSysteme::create([
+            'contenu' => $message,
+            'canal' => 'Dashboard',
+            'statut' => $statut ? 'lu' : 'non lu',
+            'date_envoi' => now(),
+            'type_notif' => 'alerte',
+        ]);
+
+        Alerte::create([
+            'type_alerte' => $type,
+            'message' => $message,
+            'niveau_criticite' => $niveau,
+            'statut' => $statut,
+            'date' => now(),
+            'notification_id' => $notification->id,
+            'priorite' => $priorite,
+        ]);
+    }
+
+    /**
+     * Clôture les alertes du type donné lorsque la condition redevient normale.
+     */
+    protected function resolveSensorAlert(string $key): void
+    {
+        $type = $key === 'eau_basse'
+            ? 'Niveau d\'eau bas'
+            : 'CO2 élevé';
+
+        Alerte::where('type_alerte', $type)
+            ->where('statut', false)
+            ->update(['statut' => true]);
     }
 
     /**

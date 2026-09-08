@@ -25,6 +25,10 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Fichiers temporaires Word / Office
+~$*
+*.tmp
+
 # Local portable tools
 .tools/
 composer.phar

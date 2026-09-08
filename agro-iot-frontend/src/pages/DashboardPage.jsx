@@ -208,6 +208,14 @@ export function DashboardPage() {
     }
   }
 
+  const eauValue = latestMeasurements ? Number(normalizeMeasurementValue(latestMeasurements, "Niveau eau")?.value ?? 0) : null;
+  const co2Value = latestMeasurements ? Number(normalizeMeasurementValue(latestMeasurements, "CO2")?.value ?? 0) : null;
+
+  const alertDrivenStatus = {
+    irrigation: eauValue !== null && eauValue < 50 ? "Alerte eau basse - LED clignote" : null,
+    ventilation: co2Value !== null && co2Value > 1000 ? "CO2 élevé - LED clignote" : null
+  };
+
   const visibleAlerts = alerts.length > 0 ? alerts : [apiWaitingAlert];
   const connectionState = isLoading ? "loading" : latestMeasurements ? "online" : "offline";
   const connectionLabel = isLoading ? "Connexion aux donnees en cours" : latestMeasurements ? "Donnees connectees" : apiStatus;
@@ -237,14 +245,14 @@ export function DashboardPage() {
           <div className="actions-stack">
             <ActionButton
               label={actionState.irrigation ? "Arreter irrigation" : "Demarrer irrigation"}
-              detail={actionStatus.irrigation}
-              active={actionState.irrigation}
+              detail={alertDrivenStatus.irrigation ?? actionStatus.irrigation}
+              active={actionState.irrigation || Boolean(alertDrivenStatus.irrigation)}
               onToggle={() => sendAction("irrigation")}
             />
             <ActionButton
               label={actionState.ventilation ? "Couper ventilation" : "Activer ventilation"}
-              detail={actionStatus.ventilation}
-              active={actionState.ventilation}
+              detail={alertDrivenStatus.ventilation ?? actionStatus.ventilation}
+              active={actionState.ventilation || Boolean(alertDrivenStatus.ventilation)}
               onToggle={() => sendAction("ventilation")}
             />
             <ActionButton
