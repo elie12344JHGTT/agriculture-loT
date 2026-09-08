@@ -28,6 +28,7 @@ CMD php artisan package:discover --ansi \
     && php artisan config:clear \
     && php artisan route:clear \
     && php artisan migrate --force \
-    && exec php -S 0.0.0.0:${PORT:-10000} -t public
+    && php artisan mqtt:listen & \
+    exec php -S 0.0.0.0:${PORT:-10000} -t public
 
 
