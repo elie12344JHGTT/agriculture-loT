@@ -566,6 +566,32 @@
   .sidebar {
     transform: translateX(-100%);
     box-shadow: 6px 0 28px rgba(0, 0, 0, 0.15);
+    /* Override old styles.css mobile shrinkage */
+    width: var(--sidebar-w-desktop) !important;
+    padding: 24px 18px 20px !important;
+  }
+
+  .sidebar-topline {
+    padding: 0 !important;
+    justify-content: space-between !important;
+    margin-bottom: 30px;
+  }
+
+  .sidebar-brand-copy {
+    display: flex !important;
+  }
+
+  .sidebar-nav-item, .logout-button {
+    justify-content: flex-start !important;
+    padding: 12px 14px !important;
+  }
+
+  .sidebar-nav-item > span:last-child, .logout-button > span:last-child {
+    display: inline-block !important;
+  }
+
+  .sidebar-irrigation {
+    display: flex !important;
   }
 
   .sidebar.mobile-open {
