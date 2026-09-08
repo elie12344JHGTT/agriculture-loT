@@ -208,28 +208,51 @@ export function DashboardPage() {
     }
   }
 
+  const eauValue = latestMeasurements ? Number(normalizeMeasurementValue(latestMeasurements, "Niveau eau")?.value ?? 0) : null;
+  const co2Value = latestMeasurements ? Number(normalizeMeasurementValue(latestMeasurements, "CO2")?.value ?? 0) : null;
+
+  const alertDrivenStatus = {
+    irrigation: eauValue !== null && eauValue < 50 ? "Alerte eau basse - LED clignote" : null,
+    ventilation: co2Value !== null && co2Value > 1000 ? "CO2 élevé - LED clignote" : null
+  };
+
   const visibleAlerts = alerts.length > 0 ? alerts : [apiWaitingAlert];
+  const connectionState = isLoading ? "loading" : latestMeasurements ? "online" : "offline";
+  const connectionLabel = isLoading ? "Connexion aux donnees en cours" : latestMeasurements ? "Donnees connectees" : apiStatus;
+
   return (
-    <section className="page-grid dashboard-page">
+    <section className="page-grid">
+      <div className={`dashboard-connection-status ${connectionState}`} title={connectionLabel} aria-label={connectionLabel}>
+        <span className="wifi-icon" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <i />
+        </span>
+      </div>
+      <div className="dashboard-mini-meta">
+        <span>Derniere mise a jour</span>
+        <strong>{lastUpdate}</strong>
+      </div>
       <div className="sensor-grid">
         {cards.map((card) => <SensorCard key={card.label} card={card} />)}
       </div>
       <div className="content-grid">
-        <Panel title="Evolution des mesures" actionLabel="Export">
+        <Panel title="Evolution des mesures">
           <LineChart labels={chartData.labels} series={chartData.series} unit={chartData.unit} />
         </Panel>
         <Panel title="Controle des actionneurs">
           <div className="actions-stack">
             <ActionButton
               label={actionState.irrigation ? "Arreter irrigation" : "Demarrer irrigation"}
-              detail={actionStatus.irrigation}
-              active={actionState.irrigation}
+              detail={alertDrivenStatus.irrigation ?? actionStatus.irrigation}
+              active={actionState.irrigation || Boolean(alertDrivenStatus.irrigation)}
               onToggle={() => sendAction("irrigation")}
             />
             <ActionButton
               label={actionState.ventilation ? "Couper ventilation" : "Activer ventilation"}
-              detail={actionStatus.ventilation}
-              active={actionState.ventilation}
+              detail={alertDrivenStatus.ventilation ?? actionStatus.ventilation}
+              active={actionState.ventilation || Boolean(alertDrivenStatus.ventilation)}
               onToggle={() => sendAction("ventilation")}
             />
             <ActionButton
@@ -240,7 +263,7 @@ export function DashboardPage() {
             />
           </div>
         </Panel>
-        <Panel title="Alertes recentes" actionLabel="Notifications">
+        <Panel title="Alertes recentes">
           <div className="alert-list compact">
             {visibleAlerts.slice(0, 3).map((alert, index) => <AlertItem key={`${alert.title}-${index}`} alert={alert} />)}
           </div>

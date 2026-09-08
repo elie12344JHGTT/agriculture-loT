@@ -7,7 +7,6 @@ import alertsIcon from "../assets/icons/bell-solid.png";
 import adminIcon from "../assets/icons/users-gear-solid.png";
 import logoutIcon from "../assets/icons/power-off-solid.png";
 import terminalIcon from "../assets/icons/terminal-solid.png";
-import dropletIcon from "../assets/icons/droplet.png";
 
 const navIcons = {
   Dashboard: dashboardIcon,
@@ -34,12 +33,10 @@ export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
     <aside className={`sidebar ${isMenuOpen ? "menu-open" : ""}`}>
       <div className="sidebar-topline">
         <div className="sidebar-brand">
-          <div className="sidebar-logo-wrap">
-            <img className="sidebar-logo" src={logoCompact} alt="Logo Agro IoT" />
-          </div>
-          <div className="sidebar-brand-copy">
+          <img className="sidebar-logo" src={logoCompact} alt="Logo Agro IoT" />
+          <div>
             <strong>Agro IoT</strong>
-            <span>Serre connectée</span>
+            <span>Serre connectee</span>
           </div>
         </div>
         <button
@@ -53,38 +50,19 @@ export function Sidebar({ activePage, navItems, setActivePage, onLogout }) {
           <img className="menu-toggle-icon" src={menuIcon} alt="" />
         </button>
       </div>
-
       <div className="sidebar-menu" id="sidebar-menu">
-        <nav className="sidebar-nav" aria-label="Navigation principale">
+        <nav>
           {navItems.map((item) => (
-            <button
-              key={item}
-              type="button"
-              data-page={item}
-              className={`sidebar-nav-item ${activePage === item ? "active" : ""}`}
-              onClick={() => selectPage(item)}
-            >
-              <span className="sidebar-nav-icon-wrap">
-                <img className="nav-icon" src={navIcons[item]} alt="" />
-              </span>
+            <button key={item} data-page={item} className={activePage === item ? "active" : ""} onClick={() => selectPage(item)}>
+              <img className="nav-icon" src={navIcons[item]} alt="" />
               <span>{item}</span>
             </button>
           ))}
         </nav>
-
-        <div className="sidebar-bottom">
-          {navItems.includes("Dashboard") && (
-            <button className="sidebar-irrigation" type="button" onClick={() => selectPage("Dashboard")}>
-              <span className="sidebar-irrigation-icon"><img src={dropletIcon} alt="" /></span>
-              <span>Contrôle irrigation</span>
-              <span className="sidebar-arrow" aria-hidden="true">→</span>
-            </button>
-          )}
-          <button className="logout-button" type="button" onClick={logout}>
-            <span className="sidebar-nav-icon-wrap"><img className="nav-icon" src={logoutIcon} alt="" /></span>
-            <span>Déconnexion</span>
-          </button>
-        </div>
+        <button className="logout-button" onClick={logout}>
+          <img className="nav-icon" src={logoutIcon} alt="" />
+          <span>Deconnexion</span>
+        </button>
       </div>
     </aside>
   );

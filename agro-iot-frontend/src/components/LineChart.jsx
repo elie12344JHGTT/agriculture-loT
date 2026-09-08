@@ -72,7 +72,6 @@ export function LineChart({ labels = [], series = [], unit = "" }) {
           </>
         ) : (
           <>
-            <text className="chart-empty-icon" x="325" y="67" textAnchor="middle">▥</text>
             <text className="chart-empty-title" x="325" y="92" textAnchor="middle">Aucune donnee recue</text>
             <text className="chart-empty-text" x="325" y="118" textAnchor="middle">Le graphique apparaitra des que Laravel envoie les mesures.</text>
           </>
