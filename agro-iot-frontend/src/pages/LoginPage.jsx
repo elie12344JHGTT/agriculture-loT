@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import api from "../api/axios";
 import logoAvecNom from "../assets/logos/agri_logo-transparante.png";
-import thermometerIcon from "../assets/icons/thermometer.png";
-import humidityIcon from "../assets/icons/humidity.png";
-import carbonIcon from "../assets/icons/carbon-dioxide.png";
-import lightIcon from "../assets/icons/light-bulb.png";
 import emailIcon from "../assets/icons/email.png";
 import passwordIcon from "../assets/icons/locked-computer.png";
 import showIcon from "../assets/icons/show.png";
@@ -26,7 +22,7 @@ export function LoginPage({ onLogin }) {
       const response = await api.post("/api/auth/login", { email, password });
       onLogin(response.data.user, response.data.token);
     } catch (error) {
-      setLoginError(error.response?.data?.message || "Impossible de se connecter");
+      setLoginError(error.response?.data?.message || "Impossible de se connecter. Vérifiez vos identifiants.");
     } finally {
       setIsSubmitting(false);
     }
@@ -34,49 +30,18 @@ export function LoginPage({ onLogin }) {
 
   return (
     <main className="login-screen">
-      <section className="login-visual" aria-label="Présentation Agro IoT">
-        <div className="login-brand">
-          <div className="login-brand-mark">
-            <img src={logoAvecNom} alt="" />
-          </div>
-          <div>
-            <strong>Agro IoT</strong>
-            <span>Agriculture intelligente</span>
-          </div>
-        </div>
-
-        <div className="login-copy">
-          <p className="login-kicker">Plateforme de supervision agricole</p>
-          <h1>Une agriculture plus <span>intelligente.</span></h1>
-          <p>
-            Suivez vos cultures, surveillez les conditions de vos parcelles et
-            pilotez vos équipements depuis un seul espace.
-          </p>
-        </div>
-
-        <div className="login-features" aria-label="Données surveillées">
-          {[
-            [thermometerIcon, "Température"],
-            [humidityIcon, "Humidité"],
-            [carbonIcon, "CO₂"],
-            [lightIcon, "Luminosité"],
-          ].map(([icon, label]) => (
-            <div className="login-feature" key={label}>
-              <div className="login-feature-icon">
-                <img src={icon} alt="" />
-              </div>
-              <strong>{label}</strong>
-            </div>
-          ))}
-        </div>
-
-        <p className="login-visual-footer">
-          Supervision en temps réel <span>•</span> Données connectées <span>•</span> Décisions éclairées
-        </p>
-      </section>
-
       <section className="login-panel">
         <div className="login-card">
+          <div className="login-card-brand">
+            <div className="login-brand-mark">
+              <img src={logoAvecNom} alt="Logo Agro IoT" />
+            </div>
+            <div className="login-brand-text">
+              <strong>Agro IoT</strong>
+              <span>Serre connectée & supervision</span>
+            </div>
+          </div>
+
           <header className="login-card-header">
             <span className="login-card-eyebrow">Espace sécurisé</span>
             <h2>Bienvenue</h2>
@@ -86,7 +51,9 @@ export function LoginPage({ onLogin }) {
           </header>
 
           <form className="login-form" onSubmit={submit}>
-            <label className="login-field-label" htmlFor="email">Adresse e-mail</label>
+            <label className="login-field-label" htmlFor="email">
+              Adresse e-mail
+            </label>
             <div className="login-field">
               <img src={emailIcon} alt="" />
               <input
@@ -100,7 +67,9 @@ export function LoginPage({ onLogin }) {
               />
             </div>
 
-            <label className="login-field-label" htmlFor="password">Mot de passe</label>
+            <label className="login-field-label" htmlFor="password">
+              Mot de passe
+            </label>
             <div className="login-field password-field">
               <img src={passwordIcon} alt="" />
               <input
@@ -125,7 +94,7 @@ export function LoginPage({ onLogin }) {
             {loginError && <div className="login-error" role="alert">{loginError}</div>}
 
             <button className="login-submit" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Connexion..." : "Se connecter"}
+              {isSubmitting ? "Connexion en cours..." : "Se connecter"}
             </button>
           </form>
 
