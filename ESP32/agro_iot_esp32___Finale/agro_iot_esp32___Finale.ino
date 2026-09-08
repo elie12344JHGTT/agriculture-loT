@@ -1,3 +1,5 @@
+#include <dummy.h>
+
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>

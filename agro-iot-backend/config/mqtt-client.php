@@ -35,7 +35,7 @@ return [
         'default' => [
 
             // The host and port to which the client shall connect.
-            'host' => env('MQTT_HOST', '127.0.0.1'),
+            'host' => env('MQTT_HOST', 'broker.hivemq.com'),
             'port' => env('MQTT_PORT', 1883),
 
             // The MQTT protocol version used for the connection.
@@ -121,7 +121,7 @@ return [
         'listener' => [
 
             // The host and port to which the client shall connect.
-            'host' => env('MQTT_HOST', '127.0.0.1'),
+            'host' => env('MQTT_HOST', 'broker.hivemq.com'),
             'port' => env('MQTT_PORT', 1883),
 
             // The MQTT protocol version used for the connection.
