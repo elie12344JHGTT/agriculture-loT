@@ -434,4 +434,5 @@ export function TerminalPage() {
         </form>
       </div>
     </section>
+  );
 }

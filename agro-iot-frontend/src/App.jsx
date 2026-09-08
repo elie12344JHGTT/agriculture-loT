@@ -146,6 +146,8 @@ export function App() {
     }
   }, [activePage, isLoggedIn]);
 
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   if (isSplashVisible) {
     return <SplashScreen />;
   }
@@ -161,9 +163,18 @@ export function App() {
         navItems={allowedNavItems}
         setActivePage={setActivePage}
         onLogout={logout}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
       <main className="main-panel">
-        <Header activePage={activePage} currentUser={currentUser} navItems={allowedNavItems} setActivePage={setActivePage} onLogout={logout} />
+        <Header
+          activePage={activePage}
+          currentUser={currentUser}
+          navItems={allowedNavItems}
+          setActivePage={setActivePage}
+          onLogout={logout}
+          onToggleMobileMenu={() => setIsMobileSidebarOpen((prev) => !prev)}
+        />
         {activePage === "Dashboard" && <DashboardPage />}
         {activePage === "Historique" && <HistoryPage />}
         {activePage === "Alertes" && <AlertsPage />}

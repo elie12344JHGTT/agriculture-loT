@@ -1,44 +1,46 @@
 /* =========================================================
-   HISTORIQUE — finition visuelle
-   Surcharge ciblée : aucune modification de la logique React.
+   HISTORIQUE — Styles responsives & finition visuelle
    ========================================================= */
 
 .main-panel > .history-page {
-  width: auto;
-  max-width: none;
-  margin: 0;
-  padding: 24px 32px 34px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 28px 36px;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  min-width: 0;
 }
 
 .table-toolbar {
-  min-height: 58px;
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   padding: 0;
 }
 
 .toolbar-filters {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .filter-dropdown {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background-color: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  padding: 8px 14px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #333;
+  color: var(--text);
   font-size: 13px;
   font-weight: 500;
   position: relative;
@@ -46,7 +48,8 @@
 }
 
 .filter-dropdown svg {
-  color: #666;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
 .filter-dropdown select {
@@ -67,7 +70,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #0b7a2d;
+  background-color: var(--green-primary, #006b1b);
   color: white;
   border: none;
   border-radius: 8px;
@@ -78,7 +81,7 @@
 }
 
 .export-btn:hover {
-  background-color: #096324;
+  background-color: var(--green-dark, #005313);
 }
 
 .export-btn svg {
@@ -88,32 +91,36 @@
 .table-wrap {
   background: white;
   border-radius: 12px;
-  border: 1px solid #eaeaea;
-  overflow: hidden;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
 .history-page table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
 }
 
 .history-page th {
   background-color: #f9faf9;
-  color: #555;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
-  padding: 16px 24px;
-  border-bottom: 1px solid #eaeaea;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .history-page td {
-  padding: 16px 24px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(209, 217, 211, 0.4);
   font-size: 13px;
-  color: #222;
+  color: var(--text);
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .history-page tr:last-child td {
@@ -134,31 +141,10 @@
   font-weight: 600;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.status-badge.normal {
-  background-color: #e6f4ea;
-  color: #1b5e20;
-}
-
-.status-badge.alerte {
-  background-color: #fff3e0;
-  color: #e65100;
-}
-
 .action-link {
   background: none;
   border: none;
-  color: #0b7a2d;
+  color: var(--green-primary, #006b1b);
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -173,16 +159,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 16px;
-  padding: 16px 24px;
+  padding: 14px 20px;
   background: white;
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
 .pagination-info {
   font-size: 13px;
-  color: #666;
+  color: var(--muted);
 }
 
 .pagination-controls {
@@ -193,11 +181,11 @@
 
 .pagination-controls button {
   background: white;
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13px;
-  color: #333;
+  color: var(--text);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -212,52 +200,35 @@
 }
 
 .pagination-controls button.active {
-  background-color: #0b7a2d;
+  background-color: var(--green-primary, #006b1b);
   color: white;
-  border-color: #0b7a2d;
+  border-color: var(--green-primary, #006b1b);
 }
 
-@media (min-width: 651px) {
-  .sidebar { width: 182px; padding: 24px 10px 18px; }
-  .sidebar-topline { padding: 0 8px 24px; }
-  .sidebar-logo-wrap { width: 34px; height: 34px; border-radius: 9px; }
-  .sidebar-logo { width: 30px; height: 30px; }
-  .sidebar-brand { gap: 8px; }
-  .sidebar-brand strong { font-size: 16px; }
-  .sidebar-brand span { font-size: 9px; }
-  .sidebar-nav { gap: 3px; }
-  .sidebar-nav-item, .logout-button { gap: 9px; padding: 9px 11px; border-radius: 9px; font-size: 10px; }
-  .sidebar-nav-icon-wrap { width: 18px; height: 18px; flex-basis: 18px; }
-  .nav-icon { width: 14px; height: 14px; }
-  .sidebar-bottom { padding-top: 15px; gap: 5px; }
-  .sidebar-irrigation { padding: 8px 9px; border-radius: 8px; font-size: 9px; }
-  .sidebar-irrigation-icon { width: 20px; height: 20px; border-radius: 6px; }
-  .topbar { min-height: 64px; margin-left: 182px; padding: 12px 32px; }
-  .topbar-title h1 { font-size: 23px; font-weight: 650; }
-  .topbar-status { margin-top: 4px; font-size: 9px; }
-  .topbar-actions { gap: 4px; }
-  .topbar-icon-button { width: 32px; height: 32px; }
-  .topbar-icon-button img { width: 15px; height: 15px; }
-  .profile-avatar { width: 25px; height: 25px; }
-  .profile-icon { width: 11px; height: 11px; }
-  .profile-chip { gap: 7px; padding: 4px 7px 4px 4px; font-size: 10px; }
-  .main-panel > .history-page { margin-left: 182px; }
-}
-
-@media (max-width: 900px) and (min-width: 651px) {
-  .sidebar { width: 182px; padding: 18px 8px 15px; }
-  .sidebar-topline { padding-bottom: 18px; }
-  .sidebar-brand-copy { display: flex; }
-  .sidebar-nav-item, .logout-button { justify-content: flex-start; padding: 9px 10px; }
-  .sidebar-nav-item > span:last-child, .logout-button > span:last-child, .sidebar-irrigation { display: flex; }
-  .topbar { margin-left: 182px; min-height: 64px; padding: 11px 20px; }
-  .main-panel > .history-page { margin-left: 182px; }
-}
-
-@media (max-width: 650px) {
-  .main-panel > .history-page { margin-left: 62px; padding: 16px; }
-  .table-toolbar { align-items: stretch; flex-direction: column; }
-  .toolbar-filters { width: 100%; flex-direction: column; }
-  .toolbar-filters > * { flex: 1; width: 100%; }
-  .history-pagination { flex-direction: column; gap: 16px; }
+@media (max-width: 768px) {
+  .main-panel > .history-page {
+    padding: 16px 14px 32px;
+  }
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .toolbar-filters {
+    flex-direction: column;
+    width: 100%;
+  }
+  .filter-dropdown {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .history-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
 }
