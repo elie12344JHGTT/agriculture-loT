@@ -54,28 +54,39 @@ const commandAliases = {
 const helpLines = [
   { text: "Commandes disponibles :", type: "system" },
   { text: "", type: "system" },
-  { text: "  arrosage start    Activer la pompe d'irrigation", type: "system" },
-  { text: "  arrosage stop     Arreter la pompe d'irrigation", type: "system" },
-  { text: "  ventilation on    Activer le ventilateur", type: "system" },
-  { text: "  ventilation off   Arreter le ventilateur", type: "system" },
-  { text: "  lumiere start     Allumer l'eclairage", type: "system" },
-  { text: "  lumiere stop      Eteindre l'eclairage", type: "system" },
-  { text: "  tout start        Tout activer (batch)", type: "system" },
-  { text: "  tout stop         Tout arreter (batch)", type: "system" },
+  { text: "  arrosage start|stop   Activer/Arreter la pompe d'irrigation", type: "system" },
+  { text: "  ventilation on|off    Activer/Arreter le ventilateur", type: "system" },
+  { text: "  lumiere start|stop    Allumer/Eteindre l'eclairage", type: "system" },
+  { text: "  tout start|stop       Tout activer/arreter (batch)", type: "system" },
   { text: "", type: "system" },
-  { text: "  date              Afficher la date/heure", type: "system" },
-  { text: "  status            Etat des actionneurs", type: "system" },
-  { text: "  whoami            Infos utilisateur", type: "system" },
-  { text: "  clear             Effacer le terminal", type: "system" },
-  { text: "  history           Historique des commandes", type: "system" },
-  { text: "  help              Afficher cette aide", type: "system" },
+  { text: "  status                Etat reel des actionneurs", type: "system" },
+  { text: "  mesures               Dernieres valeurs des capteurs", type: "system" },
+  { text: "  alertes               Alertes actives", type: "system" },
+  { text: "  scripts               Liste des scripts disponibles", type: "system" },
+  { text: "  run <CODE>            Executer un script (ex: run START_IRRIGATION)", type: "system" },
+  { text: "", type: "system" },
+  { text: "  date                  Afficher la date/heure", type: "system" },
+  { text: "  whoami                Infos utilisateur", type: "system" },
+  { text: "  pwd                   Afficher le repertoire courant", type: "system" },
+  { text: "  echo <texte>          Afficher un texte", type: "system" },
+  { text: "  history               Historique des commandes", type: "system" },
+  { text: "  clear                 Effacer le terminal", type: "system" },
+  { text: "  help                  Afficher cette aide", type: "system" },
+  { text: "", type: "system" },
+  { text: "  Plusieurs commandes :", type: "system" },
+  { text: "    ;   => en parallele    (ex: ventilation on ; lumiere on)", type: "system" },
+  { text: "    &&  => en sequence     (ex: arrosage start && status)", type: "system" },
 ];
 
 const allCommandWords = [
   ...Object.keys(actuatorAliases),
   ...Object.keys(commandAliases),
   "clear", "help", "commande", "commandes", "com",
-  "date", "status", "whoami", "history", "h", "--help", "-h",
+  "date", "horaire", "status",
+  "mesures", "mesure", "sensors", "sensor", "capteurs", "capteur",
+  "alertes", "alerts", "notifications", "notif",
+  "scripts", "ls", "list", "liste",
+  "run", "echo", "pwd", "cwd", "history", "h", "--help", "-h",
 ];
 
 function normalize(value) {
@@ -210,139 +221,209 @@ export function TerminalPage() {
     return response.data;
   }
 
-  async function executeCommand(rawCommand) {
+  function echoInput(input) {
+    return { type: "input", text: `${prompt}$ ${input}` };
+  }
+
+  function apiErrorMessage(error) {
+    return error?.response?.data?.message || error?.message || "Echec de la commande";
+  }
+
+  async function handleActuator(target, action, source, input) {
+    const targets = target === "all" ? ["irrigation", "ventilation", "light"] : [target];
+    const results = await Promise.allSettled(
+      targets.map((item) => sendActuatorCommand(item, action, source))
+    );
+    const successAll = results.every((r) => r.status === "fulfilled");
+    const failed = results.find((r) => r.status === "rejected");
+    const lines = results.map((r, index) =>
+      r.status === "fulfilled"
+        ? { type: "success", text: getActuatorSuccessMessage(targets[index], action) }
+        : { type: "error", text: `  [ERREUR] ${targets[index]} : ${apiErrorMessage(r.reason)}` }
+    );
+    logAudit({
+      page: "Terminal",
+      action: successAll ? "Commande terminal actionneur" : "Echec commande terminal",
+      details: `${target} ${action} (${source})${successAll ? "" : ` - ${apiErrorMessage(failed?.reason)}`}`,
+      status: successAll ? "success" : "failed",
+    });
+    return [echoInput(input), ...lines];
+  }
+
+  async function handleStatus(input) {
+    try {
+      const { data } = await api.get("/api/actuators/status");
+      const entries = Object.entries(data || {});
+      const lines = entries.length
+        ? entries.map(([slug, state]) => ({
+            type: state?.on ? "success" : "system",
+            text: `  ${slug.padEnd(14)} : ${state?.on ? "ON" : "OFF"}${state?.status === "introuvable" ? " (introuvable)" : ""}`,
+          }))
+        : [{ type: "error", text: "  Impossible de recuperer l'etat des actionneurs." }];
+      return [echoInput(input), ...lines];
+    } catch (error) {
+      return [echoInput(input), { type: "error", text: `  [ERREUR] ${apiErrorMessage(error)}` }];
+    }
+  }
+
+  async function handleMesures(input) {
+    try {
+      const { data } = await api.get("/api/measurements/latest");
+      const labels = {
+        temperature: "Temperature",
+        air_humidity: "Humidite air",
+        soil_humidity: "Humidite sol",
+        co2: "CO2",
+        light: "Luminosite",
+        water_level: "Niveau eau",
+      };
+      const lines = Object.entries(data || {}).map(([key, item]) => {
+        const value = item?.value ?? item?.valeur ?? item;
+        const unit = item?.unit ?? item?.unite ?? "";
+        return { type: "success", text: `  ${(labels[key] || key).padEnd(16)} : ${value} ${unit}`.trimEnd() };
+      });
+      if (lines.length === 0) lines.push({ type: "system", text: "  Aucune mesure recente." });
+      return [echoInput(input), ...lines];
+    } catch (error) {
+      return [echoInput(input), { type: "error", text: `  [ERREUR] ${apiErrorMessage(error)}` }];
+    }
+  }
+
+  async function handleAlertes(input) {
+    try {
+      const { data } = await api.get("/api/alerts/active");
+      const rows = Array.isArray(data) ? data : [];
+      if (rows.length === 0) return [echoInput(input), { type: "success", text: "  Aucune alerte active." }];
+      const lines = rows.map((alert) => ({
+        type: String(alert?.niveau_criticite).toLowerCase() === "critique" ? "error" : "system",
+        text: `  [${alert?.id_alerte || "--"}] ${alert?.type_alerte || "Alerte"} - ${alert?.message || ""} (${alert?.niveau_criticite || "Info"})`,
+      }));
+      return [echoInput(input), ...lines];
+    } catch (error) {
+      return [echoInput(input), { type: "error", text: `  [ERREUR] ${apiErrorMessage(error)}` }];
+    }
+  }
+
+  async function handleScripts(input) {
+    try {
+      const { data } = await api.get("/api/automation-rules");
+      const rows = Array.isArray(data) ? data : [];
+      if (rows.length === 0) return [echoInput(input), { type: "system", text: "  Aucun script disponible." }];
+      const lines = rows.map((script) => ({
+        type: "system",
+        text: `  ${String(script?.condition || "").padEnd(20)} : ${script?.action || ""}`,
+      }));
+      return [echoInput(input), ...lines];
+    } catch (error) {
+      return [echoInput(input), { type: "error", text: `  [ERREUR] ${apiErrorMessage(error)}` }];
+    }
+  }
+
+  async function handleRun(input) {
+    const code = input.slice(3).trim().toUpperCase();
+    const scriptActions = {
+      START_IRRIGATION: ["irrigation", "start"],
+      STOP_IRRIGATION: ["irrigation", "stop"],
+      LANCER_VENTILATION: ["ventilation", "start"],
+      COUPER_VENTILATION: ["ventilation", "stop"],
+      ALLUMER_LUMIERE: ["light", "start"],
+      ETEINDRE_LUMIERE: ["light", "stop"],
+    };
+    if (!code) {
+      return [echoInput(input), { type: "error", text: '  usage: run <CODE>   (ex: run START_IRRIGATION, voir "scripts")' }];
+    }
+    if (scriptActions[code]) {
+      const [target, action] = scriptActions[code];
+      return handleActuator(target, action, "script-run", input);
+    }
+    if (code === "READ_TEMP" || code === "READ_HUMIDITY" || code === "READ_ALL" || code === "SYNC_DATA") {
+      return handleMesures(input);
+    }
+    return [echoInput(input), { type: "error", text: `  Script inconnu: ${code}. Tapez "scripts" pour la liste.` }];
+  }
+
+  async function executeOne(rawCommand) {
     const input = rawCommand.trim();
-    if (!input) return;
+    const normalized = normalize(input);
 
-    setCommandHistory((prev) => [...prev, input]);
-    setHistoryIndex(-1);
+    if (!input) return [];
 
-    if (normalize(input) === "clear") {
-      setLogs([]);
-      return;
+    if (["help", "--help", "-h", "commande", "commandes", "com"].includes(normalized)) {
+      return [echoInput(input), ...helpLines];
     }
-
-    if (
-      ["help", "--help", "-h", "commande", "commandes", "com"].includes(
-        normalize(input)
-      )
-    ) {
-      appendLogs([{ type: "input", text: `${prompt}$ ${input}` }, ...helpLines]);
-      return;
+    if (normalized === "date" || normalized === "horaire") {
+      return [echoInput(input), { type: "success", text: getTimestamp() }];
     }
-
-    if (normalize(input) === "date" || normalize(input) === "horaire") {
-      appendLogs([
-        { type: "input", text: `${prompt}$ ${input}` },
-        { type: "success", text: getTimestamp() },
-      ]);
-      return;
+    if (normalized === "whoami") {
+      return [
+        echoInput(input),
+        { type: "success", text: `${currentUser?.name || "inconnu"} (${currentUser?.email || "?"}) [${currentUser?.role || "Agriculteur"}]` },
+      ];
     }
-
-    if (normalize(input) === "whoami") {
-      appendLogs([
-        { type: "input", text: `${prompt}$ ${input}` },
-        {
-          type: "success",
-          text: `${currentUser?.name || "inconnu"} (${currentUser?.email || "?"}) [${currentUser?.role || "Agriculteur"}]`,
-        },
-      ]);
-      return;
-    }
-
-    if (normalize(input) === "history" || normalize(input) === "h") {
+    if (normalized === "history" || normalized === "h") {
       const historyLogs = commandHistory.map((cmd, i) => ({
         type: "system",
         text: `  ${String(i + 1).padStart(4)}  ${cmd}`,
       }));
-      appendLogs([
-        { type: "input", text: `${prompt}$ ${input}` },
-        ...historyLogs,
-      ]);
-      return;
+      return [echoInput(input), ...historyLogs];
     }
-
-    if (normalize(input) === "status") {
-      appendLogs([
-        { type: "input", text: `${prompt}$ ${input}` },
-        { type: "system", text: "  Verification des actionneurs..." },
-      ]);
-      setIsRunning(true);
-      try {
-        const targets = ["irrigation", "ventilation", "light"];
-        const results = [];
-        for (const item of targets) {
-          try {
-            const data = await api.get(`/api/measurements/latest`);
-            results.push({
-              type: "success",
-              text: `  ${item.padEnd(14)} : connecte`,
-            });
-          } catch {
-            results.push({
-              type: "error",
-              text: `  ${item.padEnd(14)} : indisponible`,
-            });
-          }
-        }
-        appendLogs(results);
-      } catch {
-        appendLogs([{ type: "error", text: "  Impossible de verifier le statut." }]);
-      } finally {
-        setIsRunning(false);
-      }
-      return;
+    if (normalized === "pwd" || normalized === "cwd") {
+      return [echoInput(input), { type: "success", text: "  /parcelles/agro-iot" }];
     }
+    if (normalized === "echo") {
+      return [echoInput(input), { type: "success", text: "  " }];
+    }
+    if (normalized.startsWith("echo ")) {
+      return [echoInput(input), { type: "success", text: `  ${input.slice(4).trimStart()}` }];
+    }
+    if (normalized === "status") return handleStatus(input);
+    if (["mesures", "mesure", "sensors", "sensor", "capteurs", "capteur"].includes(normalized)) return handleMesures(input);
+    if (["alertes", "alerts", "notifications", "notif"].includes(normalized)) return handleAlertes(input);
+    if (["scripts", "ls", "list", "liste"].includes(normalized)) return handleScripts(input);
+    if (normalized === "run" || normalized.startsWith("run ")) return handleRun(input);
 
-    const [targetInput, actionInput = "start", sourceInput = "web-terminal"] =
-      input.split(/\s+/);
+    const [targetInput, actionInput = "start", sourceInput = "web-terminal"] = input.split(/\s+/);
     const target = actuatorAliases[normalize(targetInput)];
     const action = commandAliases[normalize(actionInput)];
     const source = sourceInput || "web-terminal";
 
-    if (!target || !action) {
-      appendLogs([
-        { type: "input", text: `${prompt}$ ${input}` },
-        {
-          type: "error",
-          text: `bash: commande inconnue: "${targetInput}". Tapez "help" pour les commandes disponibles.`,
-        },
-      ]);
+    if (target && action) return handleActuator(target, action, source, input);
+
+    return [
+      echoInput(input),
+      { type: "error", text: `bash: commande inconnue: "${targetInput}". Tapez "help" pour les commandes disponibles.` },
+    ];
+  }
+
+  async function executeCommand(rawCommand) {
+    const raw = rawCommand.trim();
+    if (!raw) return;
+
+    setCommandHistory((prev) => [...prev, raw]);
+    setHistoryIndex(-1);
+
+    if (normalize(raw) === "clear") {
+      setLogs([]);
       return;
     }
 
+    // && = chaines successives (sequentiel)
+    // ;  = commandes lancees en meme temps (parallele, Promise.allSettled)
+    const chains = raw.split("&&").map((c) => c.trim()).filter(Boolean);
+    if (chains.length === 0) return;
+    const batches = chains.map((chain) => chain.split(";").map((c) => c.trim()).filter(Boolean));
+
     setIsRunning(true);
-    appendLogs([{ type: "input", text: `${prompt}$ ${input}` }]);
-
     try {
-      const targets =
-        target === "all" ? ["irrigation", "ventilation", "light"] : [target];
-      const results = [];
-
-      for (const item of targets) {
-        await sendActuatorCommand(item, action, source);
-        results.push({
-          type: "success",
-          text: getActuatorSuccessMessage(item, action),
-        });
+      for (const batch of batches) {
+        const settled = await Promise.allSettled(batch.map((cmd) => executeOne(cmd)));
+        const logs = settled.flatMap((result) =>
+          result.status === "fulfilled"
+            ? result.value
+            : [{ type: "error", text: `  [ERREUR] ${apiErrorMessage(result.reason)}` }]
+        );
+        appendLogs(logs);
       }
-
-      appendLogs(results);
-      logAudit({
-        page: "Terminal",
-        action: "Commande terminal actionneur",
-        details: `${targetInput} ${actionInput} (${source})`,
-      });
-    } catch (error) {
-      const message =
-        error.response?.data?.message || error.message || "Echec de la commande";
-      appendLogs([{ type: "error", text: `  [ERREUR] ${message}` }]);
-      logAudit({
-        page: "Terminal",
-        action: "Echec commande terminal",
-        details: `${input} - ${message}`,
-        status: "failed",
-      });
     } finally {
       setIsRunning(false);
     }

@@ -157,6 +157,24 @@ export function DashboardPage() {
 
     loadDashboardData();
 
+    // Restaure l'etat reel des actionneurs (interrupteurs) depuis la base.
+    api.get("/api/actuators/status")
+      .then((response) => {
+        const states = response.data || {};
+        if (!isMounted) return;
+        setActionState({
+          irrigation: Boolean(states.irrigation?.on),
+          ventilation: Boolean(states.ventilation?.on),
+          light: Boolean(states.light?.on)
+        });
+        setActionStatus({
+          irrigation: states.irrigation?.status === "introuvable" ? "Introuvable" : "Pret",
+          ventilation: states.ventilation?.status === "introuvable" ? "Introuvable" : "Pret",
+          light: states.light?.status === "introuvable" ? "Introuvable" : "Pret"
+        });
+      })
+      .catch(() => {});
+
     // Rafraîchit automatiquement les mesures du broker MQTT (ESP32 publie ~toutes les 10 s)
     const refreshTimer = setInterval(loadDashboardData, 10000);
 
@@ -222,7 +240,7 @@ export function DashboardPage() {
 
   return (
     <section className="page-grid">
-      <div className={`dashboard-connection-status ${connectionState}`} title={connectionLabel} aria-label={connectionLabel}>
+      <div className={`dashboard-connection-status ${connectionState} ${connectionState === 'waiting' ? 'pulse' : ''}`} title={connectionLabel} aria-label={connectionLabel}>
         <span className="wifi-icon" aria-hidden="true">
           <span />
           <span />

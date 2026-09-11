@@ -53,7 +53,7 @@ export function SensorCard({ card }) {
   const stateLabel = state === "danger" ? "Critique" : state === "warning" ? "Attention" : state === "waiting" ? "Attente" : "OK";
 
   return (
-    <article className={`sensor-card ${card.tone} sensor-${state}`}>
+    <article className={`sensor-card glass ${card.tone} sensor-${state}`}>
       <div className="sensor-card-header">
         <span>{card.label}</span>
         {icon && <img className="sensor-card-icon" src={icon} alt="" />}

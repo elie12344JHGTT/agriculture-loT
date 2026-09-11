@@ -14,8 +14,15 @@ const char* TOPIC_SENSORS = "agro-iot/sensors";   // ESP32 -> Laravel
 
 // ================= BROCHES =================
 const int LED_PIN    = 4;   // éclairage
-const int LED2_PIN   = 27;
+const int LED2_PIN   = 27;  // ventilation
 const int POMPE_PIN  = 26;  // via relais
+
+// ================= POLARITE DES SORTIES =================
+// true  = "active-LOW" : la sortie s'active a l'etat BAS (relais standard).
+// false = "active-HIGH": la sortie s'active a l'etat HAUT (LED directe).
+const bool POMPE_ACTIF_LOW       = false;  // pompe / irrigation (active-HIGH)
+const bool VENTILATION_ACTIF_LOW = false;  // ventilation       (active-HIGH)
+const bool LUMIERE_ACTIF_LOW     = false;  // eclairage         (active-HIGH)
 const int DHTPIN     = 14;
 const int SOL_PIN    = 34;  // humidité sol (ADC1_CH6)
 const int CO2_PIN    = 35;  // MQ-135   (ADC1_CH7)
@@ -32,19 +39,27 @@ unsigned long dernierEnvoi = 0;
 const unsigned long INTERVAL_MESURES_MS = 10000;
 
 // ================= PILOTAGE ACTIONNEURS =================
+// Chaque actionneur fonctionne comme un interrupteur indépendant :
+//   - irrigation/pompe  -> POMPE_PIN  (26)
+//   - ventilation       -> LED2_PIN   (27)
+//   - éclairage/light   -> LED_PIN    (4)
 void commander(String nom, int id, bool actif) {
   nom.toLowerCase();
   bool estPompe = nom.indexOf("pompe") != -1 || nom.indexOf("irrigation") != -1;
+  bool estVentilation = nom.indexOf("ventil") != -1 || nom.indexOf("fan") != -1;
   bool estLumiere = nom.indexOf("light") != -1 || nom.indexOf("lumin") != -1
-    || nom.indexOf("lampe") != -1 || nom.indexOf("eclairage") != -1;
+    || nom.indexOf("lampe") != -1 || nom.indexOf("eclairage") != -1
+    || id == 5 || id == 6;
 
   if (estPompe) {
-    digitalWrite(POMPE_PIN, actif ? HIGH : LOW);
-    Serial.printf(">>> POMPE %s\n", actif ? "ACTIVEE" : "ARRETEE");
-  } else if (estLumiere || id == 5 || id == 6) {
-    digitalWrite(LED_PIN, actif ? HIGH : LOW);
-    digitalWrite(LED2_PIN, actif ? HIGH : LOW);
-    Serial.printf(">>> LED %s\n", actif ? "ALLUMEE" : "ETEINTE");
+    digitalWrite(POMPE_PIN, (actif != POMPE_ACTIF_LOW) ? HIGH : LOW);
+    Serial.printf(">>> IRRIGATION %s (pin %d)\n", actif ? "ACTIVEE" : "ARRETEE", POMPE_PIN);
+  } else if (estVentilation) {
+    digitalWrite(LED2_PIN, (actif != VENTILATION_ACTIF_LOW) ? HIGH : LOW);
+    Serial.printf(">>> VENTILATION %s (pin %d)\n", actif ? "ACTIVEE" : "ARRETEE", LED2_PIN);
+  } else if (estLumiere) {
+    digitalWrite(LED_PIN, (actif != LUMIERE_ACTIF_LOW) ? HIGH : LOW);
+    Serial.printf(">>> ECLAIRAGE %s (pin %d)\n", actif ? "ALLUME" : "ETEINT", LED_PIN);
   } else {
     Serial.printf(">>> Inconnu (nom=%s, id=%d)\n", nom.c_str(), id);
   }
@@ -118,7 +133,9 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
   pinMode(POMPE_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW); digitalWrite(LED2_PIN, LOW); digitalWrite(POMPE_PIN, LOW);
+  digitalWrite(LED_PIN,  LUMIERE_ACTIF_LOW       ? HIGH : LOW);
+  digitalWrite(LED2_PIN, VENTILATION_ACTIF_LOW   ? HIGH : LOW);
+  digitalWrite(POMPE_PIN, POMPE_ACTIF_LOW        ? HIGH : LOW);
 
   dht.begin();
 

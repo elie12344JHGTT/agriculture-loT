@@ -13,8 +13,8 @@
   --red: #c73b3b;
   --red-soft: #fbe1df;
   --border: #dde7df;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
+  font-family: 'Outfit', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}n/* Glassmorphism utility */\n.glass {\n  background: rgba(255,255,255,0.15);\n  backdrop-filter: blur(10px);\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.2);\n  transition: background 0.3s ease, transform 0.2s ease;\n}n.glass:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 8px 20px rgba(0,0,0,0.12);\n}n\n/* Global transition for interactive elements */\nbutton, .action-button, .sensor-card, .panel, .alert-item, .user-card {\n  transition: background 0.3s ease, transform 0.2s ease;\n}n\n/* Pulse animation for waiting status */\n@keyframes pulse {\n  0% { opacity: 0.8; }n  50% { opacity: 1; }n  100% { opacity: 0.8; }n}n.pulse {\n  animation: pulse 2s infinite;\n}
 
 * {
   box-sizing: border-box;

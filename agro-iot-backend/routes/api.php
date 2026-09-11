@@ -784,6 +784,35 @@ Route::get('/access-logs', function (Request $request) {
         'total' => $rows->count(),
     ]);
 });
+Route::get('/actuators/status', function () {
+    $allowed = [
+        'irrigation' => ['pompe', 'irrigation'],
+        'ventilation' => ['ventilateur', 'ventilation', 'fan'],
+        'light' => ['lampe', 'light', 'eclairage', 'relais', 'relai'],
+    ];
+
+    $states = [];
+    foreach ($allowed as $slug => $keywords) {
+        $actionneur = Actionneur::query()
+            ->where(function ($query) use ($keywords) {
+                foreach ($keywords as $keyword) {
+                    $query->orWhere('nom', 'like', "%{$keyword}%")
+                        ->orWhere('type', 'like', "%{$keyword}%");
+                }
+            })
+            ->first();
+
+        $states[$slug] = [
+            'on' => $actionneur !== null && strtolower((string) $actionneur->statut) === 'on',
+            'status' => $actionneur ? $actionneur->statut : 'introuvable',
+            'actionneur_id' => $actionneur?->id,
+            'nom' => $actionneur?->nom,
+        ];
+    }
+
+    return response()->json($states);
+});
+
 Route::post('/actuators/{actuator}', function (Request $request, string $actuator) {
     if ($response = agro_require_role($request, ['Admin', 'Technicien'])) {
         return $response;

@@ -13,10 +13,10 @@ const char* TOPIC_ACTIONS = "agro-iot/actions";   // Laravel -> ESP32
 const char* TOPIC_SENSORS = "agro-iot/sensors";   // ESP32 -> Laravel
 
 // ================= BROCHES =================
-const int LED_PIN            = 4;    // Éclairage (LED classique supposée -> HIGH = Allumé)
-const int LED2_PIN           = 27;   // Ventilation (Relais -> LOW = Actif)
-const int LED_IRRIGATION_PIN = 25;   // Voyant/Relais d'irrigation (Relais -> LOW = Actif)
-const int POMPE_PIN          = 26;   // Pompe via relais (Relais -> LOW = Actif)
+const int LED_PIN            = 4;    // Éclairage (LED classique -> HIGH = Allumé)
+const int LED2_PIN           = 27;   // Ventilation (Relais testé -> HIGH = Actif)
+const int LED_IRRIGATION_PIN = 25;   // Voyant/Relais d'irrigation (Relais -> HIGH = Actif)
+const int POMPE_PIN          = 26;   // Pompe via relais (Relais -> HIGH = Actif)
 const int DHTPIN             = 14;
 const int TRIG_PIN           = 18;   // HC-SR04 Trig
 const int ECHO_PIN           = 19;   // HC-SR04 Echo
@@ -66,17 +66,18 @@ void commander(const char* slug, bool actif) {
 
   if (estPompe) {
     etatManuelPompe = actif;
-    // Les relais s'activent généralement à l'état LOW (0)
-    digitalWrite(POMPE_PIN, actif ? LOW : HIGH);
+    // Relais d'irrigation testés en actif HIGH (1)
+    digitalWrite(POMPE_PIN, actif ? HIGH : LOW);
     if (!alerteEauBasse) {
-      digitalWrite(LED_IRRIGATION_PIN, actif ? LOW : HIGH);
+      digitalWrite(LED_IRRIGATION_PIN, actif ? HIGH : LOW);
     }
     Serial.printf(">>> IRRIGATION %s\n", actif ? "ACTIVEE" : "ARRETEE");
   }
   else if (estVentilation) {
     etatManuelVentil = actif;
     if (!alerteCo2Eleve) {
-      digitalWrite(LED2_PIN, actif ? LOW : HIGH);
+      // Relais de ventilation testés en actif HIGH (1)
+      digitalWrite(LED2_PIN, actif ? HIGH : LOW);
     }
     Serial.printf(">>> VENTILATION %s\n", actif ? "ACTIVEE" : "ARRETEE");
   }
@@ -148,12 +149,12 @@ void lireEtPublierMesures() {
   alerteEauBasse = (eauPct < 50);            // Moins de la moitié (50%)
   alerteCo2Eleve = (co2 > SEUIL_CO2_ELEVE);   // Seuil de CO2 dépassé
 
-  // Remise de l'état fixe si plus d'alerte (Inversion LOW pour les relais)
+  // Remise de l'état fixe si plus d'alerte (relais en actif HIGH)
   if (!alerteEauBasse) {
-    digitalWrite(LED_IRRIGATION_PIN, etatManuelPompe ? LOW : HIGH);
+    digitalWrite(LED_IRRIGATION_PIN, etatManuelPompe ? HIGH : LOW);
   }
   if (!alerteCo2Eleve) {
-    digitalWrite(LED2_PIN, etatManuelVentil ? LOW : HIGH);
+    digitalWrite(LED2_PIN, etatManuelVentil ? HIGH : LOW);
   }
 
   // Publication JSON
@@ -218,11 +219,12 @@ void setup() {
   pinMode(36, INPUT);       // Capteur de luminosité (ADC1_CH0 / VP)
   pinMode(CO2_PIN, INPUT);  // MQ-135 (ADC)
   
-  // États initiaux au démarrage (HIGH = Relais éteints / LOW = LED éteinte)
+  // États initiaux au démarrage : tout éteint.
+  // LED classique (pin 4) + relais vent/irrigation/pompe : LOW = éteint.
   digitalWrite(LED_PIN, LOW); 
-  digitalWrite(LED2_PIN, HIGH); 
-  digitalWrite(LED_IRRIGATION_PIN, HIGH);
-  digitalWrite(POMPE_PIN, HIGH);
+  digitalWrite(LED2_PIN, LOW); 
+  digitalWrite(LED_IRRIGATION_PIN, LOW);
+  digitalWrite(POMPE_PIN, LOW);
 
   dht.begin();
 
@@ -249,11 +251,11 @@ void loop() {
     etatClignotement = !etatClignotement;
 
     if (alerteEauBasse) {
-      // Pour faire clignoter un relais : LOW active, HIGH désactive
-      digitalWrite(LED_IRRIGATION_PIN, etatClignotement ? LOW : HIGH);
+      // Clignotement relais en actif HIGH : HIGH allume, LOW éteint
+      digitalWrite(LED_IRRIGATION_PIN, etatClignotement ? HIGH : LOW);
     }
     if (alerteCo2Eleve) {
-      digitalWrite(LED2_PIN, etatClignotement ? LOW : HIGH);
+      digitalWrite(LED2_PIN, etatClignotement ? HIGH : LOW);
     }
   }
 

@@ -3,7 +3,7 @@ import bellIcon from "../assets/icons/bell-solid.png";
 
 export function AlertItem({ alert }) {
   return (
-    <article className="alert-item">
+    <article className="alert-item glass">
       <img className="alert-icon" src={bellIcon} alt="" />
       <div>
         <strong>{alert.title}</strong>
